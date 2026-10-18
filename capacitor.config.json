@@ -1,0 +1,11 @@
+{
+  "appId": "com.fundsandbox.app",
+  "appName": "基金沙盒",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

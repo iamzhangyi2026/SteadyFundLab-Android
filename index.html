@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover：让页面延伸到系统栏区域，env(safe-area-inset-*) 才会返回真实值。
+         缺这行时 env() 恒为 0，底部导航会被 Android 系统横条遮挡、按钮点不到。 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0F1923" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>基金沙盒</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/react/main.jsx"></script>
+  </body>
+</html>

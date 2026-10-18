@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+android/app/build/
+android/.gradle/
+android/build/
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+.env.local
+
+# Capacitor
+.capacitor/
+
+# Local SDK path
+local.properties
+
+# Vite temporary files
+vite.config.js.timestamp-*.mjs

@@ -1,0 +1,196 @@
+/* ============================================================
+   fund-sandbox · design tokens（单一事实来源）
+   基调：浅色 / 深色 双主题（data-theme 切换）· 涨红跌绿（仅用于数值）
+   状态/分类/好-坏 用语义色板（teal/info/warn/danger），不沾红绿。
+   ⚠️ 组件类（.page/.card/.btn/...）统一在 app.css，本文件只定义变量与基础 reset。
+   ⚠️ 组件颜色一律走 var()，不得硬编码——否则深色模式失效。
+   ============================================================ */
+
+:root {
+  /* 间距阶梯 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* 字号阶梯（正文以 15px 为基准，readable） */
+  --fs-kicker: 12px;
+  --fs-caption: 13px;
+  --fs-body: 15px;
+  --fs-sub: 17px;
+  --fs-h3: 20px;
+  --fs-h2: 26px;
+  --fs-h1: 34px;
+  --fs-num: 28px;
+  --fs-tile: 23px;
+
+  /* 颜色（浅色基调） */
+  --bg: #eef1f7;
+  --bg-2: #e4e9f2;
+  --surface: rgba(255, 255, 255, 0.90);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-solid: #ffffff;
+  --surface-soft: #f4f6f9;
+  --on-accent: #ffffff;
+  --border: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(15, 23, 42, 0.18);
+
+  /* 外壳 chrome（顶部 header / 底部 tab-bar / 浮动面板）：
+     深色下必须跟随主题，否则白底白字看不清 */
+  --chrome-bg: rgba(255, 255, 255, 0.95);
+  --chrome-bg-strong: rgba(255, 255, 255, 0.97);
+  --chrome-border: rgba(0, 0, 0, 0.06);
+
+  --text: #1f2733;
+  --text-soft: #4a5160;
+  /* 辅助/说明文字：原 #5b6675 在浅底上偏浅、12px 偏小（审计 A）。
+     加深到 #455268，保证说明/帮助的对比度，仍比正文浅一档。 */
+  --text-mute: #455268;
+
+  --accent: #3b6ef6;
+  --accent-soft: rgba(59, 110, 246, 0.12);
+
+  /* 涨跌：涨红跌绿（仅用于数值涨跌 / 资金流方向，不用于状态） */
+  --up: #e23b3b;
+  --up-soft: rgba(226, 59, 59, 0.10);
+  --down: #1f9e5a;
+  --down-soft: rgba(31, 158, 90, 0.12);
+
+  /* 语义色板：状态 / 分类 / 好-坏（红仅留真正危险/失败） */
+  --teal: #0d9488;
+  --teal-soft: rgba(13, 148, 136, 0.12);
+  --purple: #6b46c1;
+  --purple-soft: #f0e6ff;
+  --info: #3b6ef6;
+  --info-soft: rgba(59, 110, 246, 0.12);
+  --warn: #b9831f;
+  --warn-soft: rgba(185, 131, 31, 0.14);
+  --danger: #c0392b;
+  --danger-soft: rgba(192, 57, 43, 0.12);
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-control: 11px; /* 按钮 / 输入 / 图标按钮统一控件圆角，收紧圆角家族 */
+  --radius: 13px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+
+  /* 阴影（多层：紧贴接触阴影 + 柔和氛围阴影，比单条更立体、更"浮起"） */
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-hover: 0 2px 6px rgba(15, 23, 42, 0.07), 0 10px 28px rgba(15, 23, 42, 0.10);
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
+  /* 卡片顶边高光：给半透明卡片一条 crisp 上沿，增强"玻璃"质感（观感打磨） */
+  --shadow-edge: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  /* 等宽数字字体（数值对齐） */
+  --font-num: "SF Mono", "JetBrains Mono", "Roboto Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* 动效节奏 */
+  --motion-fast: 160ms;
+  --motion: 280ms;
+  --motion-slow: 560ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* app.css 现有动画使用的名字，保持同义，避免声明整条失效 */
+  --dur: var(--motion);
+  --dur-slow: var(--motion-slow);
+  --ease-out: cubic-bezier(0.22, 0.85, 0.3, 1);
+
+  /* ---- 交互参数（按键 / 弹窗 / 拖拽）----
+     以下为「首屏兜底值」，运行时由 lib/motion.js 的 installMotionVars() 覆盖。
+     调手感请改 lib/motion.js 一处，这里保持同值即可。 */
+  --dur-enter: 400ms;                    /* 弹窗进入 */
+  --dur-exit: 260ms;                     /* 弹窗退出：退出短于进入 */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-physical: cubic-bezier(0.4, 0, 0.2, 1);  /* 物理标准：加速进、减速停 */
+
+  /* 按键 */
+  --btn-dur-hover: 160ms;
+  --btn-dur-press: 110ms;
+  --btn-press-scale: 0.975;
+  --btn-press-y: 1px;
+  --btn-hover-y: -1px;
+  --btn-focus-ring: 3px;
+  --btn-disabled-opacity: 0.5;
+
+  /* 弹窗 */
+  --modal-dur-enter: var(--dur-enter);
+  --modal-dur-exit: var(--dur-exit);
+  --modal-overlay-dur: 300ms;
+  --modal-scale-from: 0.7;
+  --modal-translate-from: 28px;
+
+  /* 拖拽 */
+  --drag-dur-inertia: 520ms;
+  --drag-dur-snap: 320ms;
+  --drag-lift-scale: 1.02;
+  --drag-lift-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  --drag-lift-rotate: 0deg;
+}
+
+/* ---- 深色主题：仅覆盖颜色类变量；间距/字号/圆角/动效沿用 :root ---- */
+[data-theme="dark"] {
+  --bg: #0f141a;
+  --bg-2: #12181f;
+  --surface: rgba(26, 32, 40, 0.90);
+  --surface-strong: rgba(26, 32, 40, 0.96);
+  --surface-solid: #1a2028;
+  --surface-soft: #232b35;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.20);
+
+  /* 外壳 chrome：深色下换成深底，避免白底白字 */
+  --chrome-bg: rgba(20, 26, 33, 0.92);
+  --chrome-bg-strong: rgba(20, 26, 33, 0.94);
+  --chrome-border: rgba(255, 255, 255, 0.10);
+
+  --text: #e8ecf1;
+  --text-soft: #aab4c0;
+  --text-mute: #7c8794;
+
+  --accent: #5b9be8;
+  --accent-soft: rgba(91, 155, 232, 0.16);
+  --on-accent: #ffffff;
+
+  --up: #f2555a;
+  --up-soft: rgba(242, 85, 90, 0.16);
+  --down: #34c77b;
+  --down-soft: rgba(52, 199, 123, 0.16);
+
+  --teal: #2dd4bf;
+  --teal-soft: rgba(45, 212, 191, 0.16);
+  --purple: #a78bfa;
+  --purple-soft: rgba(167, 139, 250, 0.16);
+  --info: #5b9be8;
+  --info-soft: rgba(91, 155, 232, 0.16);
+  --warn: #e0a73c;
+  --warn-soft: rgba(224, 167, 60, 0.16);
+  --danger: #f07167;
+  --danger-soft: rgba(240, 113, 103, 0.16);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.50);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.30), 0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: var(--fs-body);
+  color: var(--text);
+  background:
+    radial-gradient(1100px 600px at 84% -10%, rgba(59, 110, 246, 0.045), transparent 62%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}

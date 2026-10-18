@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">基金沙盒</string>
+    <string name="title_activity_main">基金沙盒</string>
+    <string name="package_name">com.fundsandbox.app</string>
+    <string name="custom_url_scheme">com.fundsandbox.app</string>
+    <string name="app_description">基金模拟交易与智能分析工具</string>
+    <string name="developer">Fund Sandbox Team</string>
+    <string name="privacy_policy_url">https://fund-sandbox.example.com/privacy</string>
+</resources>
