@@ -1,0 +1,1184 @@
+/* ============================================================
+   基金沙盒 · 移动端组件样式
+   配合 tokens.css 使用。命名与常见 Web 组件习惯一致
+   （.card / .btn / .chip / .callout）。
+   ============================================================ */
+
+/* ---------------- 自选观察首页 ---------------- */
+.watch-page { padding-bottom: var(--space-2); }
+.watch-welcome { padding: 5px 2px 21px; }
+.watch-eyebrow, .section-overline {
+  display: flex; align-items: center; gap: 7px;
+  color: #768176; font-size: 10px; font-weight: 700;
+  letter-spacing: 1.35px;
+}
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #3d9874; box-shadow: 0 0 0 3px rgba(61,152,116,.13); }
+.watch-welcome h1 { margin: 15px 0 7px; font-size: clamp(28px, 8vw, 34px); line-height: 1.18; letter-spacing: -1.3px; font-weight: 650; color: #17271f; }
+.watch-welcome h1 em { color: #55846b; font-style: normal; }
+.watch-welcome p { margin: 0; color: #778078; font-size: 13px; }
+.market-card {
+  overflow: hidden; position: relative; color: #f4f6ed; border-radius: 22px;
+  padding: 19px 18px 14px; margin-bottom: 25px;
+  background: radial-gradient(ellipse at 88% 2%, rgba(113,160,119,.27), transparent 42%), linear-gradient(135deg,#173b32 0%,#1d493d 55%,#254d3c 100%);
+  box-shadow: 0 12px 28px rgba(24,65,50,.17), inset 0 1px rgba(255,255,255,.12);
+}
+.market-card::after { content:''; position:absolute; width:150px; height:150px; border:1px solid rgba(255,255,255,.08); border-radius:50%; right:-61px; bottom:-105px; box-shadow:0 0 0 20px rgba(255,255,255,.025),0 0 0 42px rgba(255,255,255,.02); }
+.market-topline, .market-bottomline { display:flex; align-items:center; justify-content:space-between; gap:12px; position:relative; z-index:1; }
+.market-kicker { color:rgba(237,245,232,.62); font-size:11px; letter-spacing:.6px; }
+.market-title { margin-top:3px; font-size:19px; font-weight:600; letter-spacing:.2px; }
+.market-status { display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border-radius:99px; color:#d6ead9; background:rgba(255,255,255,.10); font-size:10px; white-space:nowrap; }
+.market-status i { width:6px;height:6px;border-radius:50%;background:#9bd2a7; }
+.market-status.is-loading i { background:#e6c578; animation: statusPulse 1s ease-in-out infinite alternate; }
+@keyframes statusPulse { to { opacity:.35; } }
+.market-bottomline { align-items:flex-end; margin-top:16px; }
+.market-count { display:flex; align-items:baseline; gap:9px; }
+.market-count strong { font:600 36px/1 var(--font-num); letter-spacing:-1.5px; }
+.market-count span { color:rgba(237,245,232,.68); font-size:11px; }
+.market-mood { display:flex; gap:7px; padding-bottom:2px; }
+.market-mood span { padding:5px 7px; border-radius:7px; font:600 11px var(--font-num); background:rgba(255,255,255,.09); }
+.market-mood .mood-up { color:#ffb3a9; }.market-mood .mood-down { color:#a8e0bd; }
+.market-foot { position:relative; z-index:1; margin-top:15px; padding-top:11px; border-top:1px solid rgba(255,255,255,.13); display:flex; align-items:center; gap:7px; color:rgba(237,245,232,.62); font-size:10px; }
+.market-foot-mark { display:grid;place-items:center;width:13px;height:13px;border:1px solid rgba(237,245,232,.5);border-radius:50%;font:600 9px Georgia; }
+.watch-section-head { display:flex; align-items:flex-end; justify-content:space-between; margin:0 2px 10px; }
+.watch-section-head h2 { margin:2px 0 0; font-size:19px; line-height:1.2; letter-spacing:-.4px; color:#202b24; }
+.section-overline { font-size:9px; letter-spacing:1.25px; color:#929a90; }
+.text-action { padding:7px 9px; border:0; background:transparent; color:#4e7862; font-size:12px; font-weight:600; }
+.text-action:disabled { opacity:.48; }
+.watch-list-card { overflow:hidden; padding:1px 13px; background:rgba(255,255,255,.84); border:1px solid rgba(32,53,39,.07); border-radius:17px; box-shadow:0 5px 18px rgba(31,55,39,.045); }
+.watch-fund-row { display:flex; width:100%; min-height:72px; align-items:center; gap:10px; padding:10px 0; border:0; border-bottom:1px solid rgba(31,55,39,.075); background:transparent; text-align:left; color:inherit; cursor:pointer; }
+.watch-fund-row:last-child { border-bottom:0; }.watch-fund-row:active { opacity:.72; }
+.fund-avatar { flex:none; width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:#eaf1e9;color:#4f7b5e;font-size:15px;font-weight:700; }
+.avatar-消费 { background:#f6eee1;color:#ad7c3b; }.avatar-白酒 { background:#f6eae5;color:#ae6a55; }.avatar-医药 { background:#e9eff8;color:#627da9; }
+.watch-fund-main { display:block; flex:1; min-width:0; }
+.watch-fund-main strong { display:block; overflow:hidden; color:#29342c;font-size:13px;font-weight:600;white-space:nowrap;text-overflow:ellipsis; }
+.watch-fund-main small { display:flex;align-items:center;gap:5px;margin-top:5px;color:#969e95;font-size:10px;white-space:nowrap; }
+.watch-fund-main small i { width:2px;height:2px;border-radius:50%;background:#b4bbb2; }
+.watch-fund-main .fund-code { font-family:var(--font-num);color:#788279; }
+.watch-fund-numbers { flex:none; min-width:68px; text-align:right; }
+.watch-fund-numbers strong { display:block;color:#26342b;font:600 13px var(--font-num); }
+.watch-fund-numbers small { display:block;margin-top:5px;font:500 10px var(--font-num); }
+.watch-fund-numbers .up { color:var(--up); }.watch-fund-numbers .down { color:var(--down); }.watch-fund-numbers .flat { color:var(--flat); }
+.row-chevron { color:#b4bcb4; font-size:20px; line-height:1; margin-left:-5px; }
+.watch-fund-row.unavailable { cursor:default; }.unavailable .fund-avatar { background:#f0f0eb;color:#9c9f96; }.unavailable .watch-fund-main small { color:#b17c42; }.fund-unavailable { color:#a1a69e;font-size:10px;white-space:nowrap; }
+.data-note { display:flex;align-items:flex-start;gap:7px;margin:9px 3px 0;color:#8b7655;font-size:10px;line-height:1.55; }.data-note span { flex:none;width:14px;height:14px;display:grid;place-items:center;border:1px solid #c6a978;border-radius:50%;font-size:9px; }
+.tools-heading { margin-top:24px; }
+.quick-actions { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.quick-card { position:relative;min-width:0;min-height:108px;padding:12px;border:1px solid rgba(32,53,39,.07);border-radius:16px;text-align:left;cursor:pointer;box-shadow:0 4px 14px rgba(31,55,39,.035); }
+.quick-card:active { transform:scale(.985); }.discover-action { background:linear-gradient(145deg,#f8f5eb,#f1efe3); }.ledger-action { background:linear-gradient(145deg,#edf3ed,#e7efea); }
+.quick-icon { display:grid;place-items:center;width:26px;height:26px;border-radius:9px;background:rgba(255,255,255,.75);color:#57745e;font-size:17px; }
+.quick-title { display:block;margin-top:10px;color:#29362d;font-size:13px;font-weight:650; }.quick-caption { display:block;margin-top:2px;color:#8b9389;font-size:10px;white-space:nowrap; }.quick-arrow { position:absolute;right:12px;top:13px;color:#9ba49a;font-size:14px; }
+.privacy-note { display:flex;align-items:center;gap:10px;margin-top:16px;padding:11px 12px;border-radius:13px;background:rgba(255,255,255,.52);color:#688071; }
+.privacy-note>span:first-child { display:grid;place-items:center;width:29px;height:29px;border-radius:10px;background:#e4eee5;font-size:15px; }
+.privacy-note div { flex:1; }.privacy-note strong,.privacy-note small { display:block; }.privacy-note strong { color:#566b5b;font-size:11px;font-weight:600; }.privacy-note small { margin-top:2px;color:#929c92;font-size:9px; }.privacy-check { color:#6a9b76;font-size:14px; }
+.watch-disclaimer { margin:10px 0 0;text-align:center;color:#a0a69e;font-size:9px; }
+@media (max-width:340px) { .market-card { padding-left:14px;padding-right:14px; }.watch-list-card { padding-left:10px;padding-right:10px; }.watch-fund-row { gap:7px; }.watch-fund-numbers { min-width:61px; }.watch-fund-main small { gap:3px;font-size:9px; } }
+
+/* ---------------- 真实持仓面板（自选首页 / 持仓页共用） ---------------- */
+.rh-panel { margin-bottom: 22px; }
+.rh-card {
+  padding: 16px 16px 12px; border-radius: 20px;
+  background: rgba(255,255,255,.86); border: 1px solid rgba(32,53,39,.07);
+  box-shadow: 0 6px 20px rgba(31,55,39,.05);
+}
+.rh-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rh-label { color: #8b9389; font-size: 10px; letter-spacing: .4px; }
+.rh-num { margin-top: 4px; color: #1b2a21; font: 600 30px/1.1 var(--font-num); letter-spacing: -1.2px; }
+.rh-pnl { flex: none; text-align: right; }
+.rh-pnl span { display: block; color: #8b9389; font-size: 10px; }
+.rh-pnl strong { display: block; margin-top: 5px; color: #2a362d; font: 600 15px var(--font-num); }
+.rh-pnl strong.up { color: var(--up); }
+.rh-pnl strong.down { color: var(--down); }
+.rh-pnl strong.flat { color: var(--flat); }
+.rh-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(31,55,39,.08); }
+.rh-stats > div + div { padding-left: 12px; border-left: 1px solid rgba(31,55,39,.08); }
+.rh-stats span { display: block; color: #949c92; font-size: 9px; }
+.rh-stats strong { display: block; margin-top: 4px; color: #2a362d; font: 600 12px var(--font-num); }
+.rh-stats strong.up { color: var(--up); }
+.rh-stats strong.down { color: var(--down); }
+.rh-stats strong.flat { color: var(--flat); }
+.rh-list {
+  overflow: hidden; margin-top: 10px; padding: 1px 13px;
+  background: rgba(255,255,255,.84); border: 1px solid rgba(32,53,39,.07);
+  border-radius: 17px; box-shadow: 0 5px 18px rgba(31,55,39,.045);
+}
+.rh-row {
+  display: block; width: 100%; padding: 11px 0 10px;
+  border: 0; border-bottom: 1px solid rgba(31,55,39,.075);
+}
+.rh-row:last-child { border-bottom: 0; }
+.rh-row-btn {
+  display: block; width: 100%; padding: 0;
+  border: 0; background: transparent; text-align: left; color: inherit; cursor: pointer;
+}
+.rh-row-btn:active { opacity: .72; }
+.rh-row-btn:disabled { opacity: 1; cursor: default; }
+.rh-ops { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.rh-edit {
+  margin-top: 10px; padding: 10px; border-radius: 10px;
+  background: var(--surface-solid); border: 1px solid var(--border);
+}
+.rh-row-top { display: flex; align-items: flex-start; gap: 10px; }
+.rh-row-main { display: block; flex: 1; min-width: 0; }
+.rh-row-main strong { display: block; overflow: hidden; color: #29342c; font-size: 13px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.rh-row-main small { display: block; overflow: hidden; margin-top: 4px; color: #969e95; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
+.rh-row-main .fund-code { font-family: var(--font-num); color: #788279; }
+.rh-row-num { flex: none; min-width: 96px; text-align: right; }
+.rh-row-num strong { display: block; color: #26342b; font: 600 13px var(--font-num); }
+.rh-row-num small { display: block; margin-top: 4px; font: 500 10px var(--font-num); }
+.rh-row-num small em { font-style: normal; }
+.rh-row-num small.up { color: var(--up); }
+.rh-row-num small.down { color: var(--down); }
+.rh-row-num small.flat { color: var(--flat); }
+/* 每只基金的四项小字段（估算净值 / 涨跌幅 / 估算收益 / 更新时间） */
+.rh-row-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(31,55,39,.09);
+}
+.rh-row-meta > span { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.rh-row-meta i { flex: none; color: #9aa298; font-size: 9px; font-style: normal; }
+.rh-row-meta b { overflow: hidden; color: #3a463c; font: 600 10px var(--font-num); white-space: nowrap; text-overflow: ellipsis; }
+.rh-row-meta b.up { color: var(--up); }
+.rh-row-meta b.down { color: var(--down); }
+.rh-row-meta b.flat { color: var(--flat); }
+.rh-pnl em { display: block; margin-top: 2px; font: 500 10px var(--font-num); font-style: normal; }
+.rh-pnl em.up { color: var(--up); }
+.rh-pnl em.down { color: var(--down); }
+.rh-pnl em.flat { color: var(--flat); }
+.rh-empty { padding: 22px 16px 18px; text-align: center; }
+.rh-empty-title { color: #2c3a30; font-size: 14px; font-weight: 600; }
+.rh-empty-note { margin-top: 5px; color: #929a90; font-size: 11px; line-height: 1.5; }
+
+/* ---------------- App 外壳 ---------------- */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background:
+    radial-gradient(900px 520px at 84% -8%, rgba(59, 110, 246, 0.05), transparent 62%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+  background-attachment: fixed;
+}
+
+/* ------------------------------------------------------------
+   背景光斑 —— 液态玻璃的「燃料」
+   ------------------------------------------------------------
+   backdrop-filter 模糊的是元素**背后**的内容。
+   如果背后是纯色渐变，模糊前后一模一样，玻璃效果等于没有。
+
+   所以这里放几个固定不动的彩色光斑：玻璃卡片划过它们时，
+   透出来的是被揉开的色块 —— 这才是玻璃该有的样子。
+   ------------------------------------------------------------ */
+.app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(320px 320px at 10% 6%, rgba(59, 110, 246, 0.20), transparent 70%),
+    radial-gradient(280px 280px at 90% 18%, rgba(13, 148, 136, 0.17), transparent 70%),
+    radial-gradient(360px 360px at 74% 58%, rgba(139, 92, 246, 0.15), transparent 70%),
+    radial-gradient(300px 300px at 20% 78%, rgba(226, 59, 59, 0.10), transparent 70%);
+}
+
+/* 内容层要盖在光斑上面，否则光斑会挡住界面。
+   注意：tabbar 自己有 fixed 定位，不要在这里设 position，否则会打架。 */
+.app-header,
+.app-body {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------- 顶部标题栏 ---------------- */
+.app-header {
+  flex: none;
+  padding-top: var(--safe-top);
+  /* 液态玻璃：顶部来光，所以高光在上、阴影在下 */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.80),
+    rgba(255, 255, 255, 0.52)
+  );
+  backdrop-filter: blur(26px) saturate(190%);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 14px rgba(15, 23, 42, 0.05);
+}
+.app-header-inner {
+  height: var(--header-h);
+  padding: 0 var(--page-pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.app-title { font-size: var(--fs-h3); font-weight: 600; letter-spacing: -0.2px; }
+.app-sub { font-size: var(--fs-kicker); color: var(--text-mute); }
+.header-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  border-radius: var(--radius-control);
+  display: grid; place-items: center;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.header-btn:active { transform: scale(0.96); }
+
+/* ---------------- 内容滚动区 ---------------- */
+.app-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--page-pad);
+  padding-bottom: calc(var(--tabbar-total) + var(--space-6));
+}
+
+/* ---------------- 底部 Tab Bar ---------------- */
+/* ---------------- 底部 Dock（苹果风格：悬浮玻璃药丸）----------------
+   和贴底通栏的区别：
+     1. 左右留边，不贴屏幕边缘
+     2. 底部也留一点，真正「浮」起来
+     3. 大圆角（高度的一半 = 胶囊形）
+     4. 四周一圈玻璃高光，不只是顶边
+   ------------------------------------------------------------------ */
+.tabbar {
+  position: fixed;
+  /* 左右各留 22px；大屏时最多 420px，不会跟着屏幕一起变宽 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 44px), 420px);
+  bottom: calc(var(--safe-bottom) + 8px);
+  height: var(--tabbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 31px;
+  z-index: 50;
+
+  /* 液态玻璃 —— 但要比卡片「实」一些。
+     Dock 是浮在内容之上的，滚到它后面的是文字；
+     太透的话背后的字会叠上来，标签就看不清了。
+     所以这里不透明度比卡片高，靠 blur + 高光边维持玻璃感。 */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(255, 255, 255, 0.84)
+  );
+  backdrop-filter: blur(34px) saturate(190%);
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 8px 30px rgba(15, 23, 42, 0.14);
+}
+.tab-item {
+  flex: 1;
+  height: 50px;
+  border: 0;
+  background: none;
+  padding: 0;
+  border-radius: 25px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px;
+  color: var(--text-mute);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+.tab-item svg { width: 23px; height: 23px; }
+
+/* 红点：挂在图标右上角，指明「这个页签里有新东西」。
+   用 relative + absolute，不占布局空间，不会把图标挤歪。 */
+.tab-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-dot {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b30;
+  /* 一圈底色描边，避免在彩色玻璃上被吃掉 */
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9);
+}
+
+/* 「有新版本」小标签 —— 跟图标渐变同源，视觉上是一家 */
+.new-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: linear-gradient(135deg, #3b6ef6, #0d9488);
+}
+
+/* 选中态：Dock 本身已经很实，再叠白色对比不出来。
+   所以改用「淡蓝底 + 蓝色图标文字」，并保留一条顶部高光，
+   让它看起来是嵌进玻璃里的一个凹槽。 */
+.tab-item.on {
+  color: var(--accent);
+  background: rgba(59, 110, 246, 0.11);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.tab-item:active { opacity: 0.6; }
+
+/* ---------------- 卡片 ---------------- */
+/* ============================================================
+   液态玻璃质感（Liquid Glass）
+   ------------------------------------------------------------
+   三层叠加，缺一层就不像：
+     1. 半透明渐变底色（不是纯色，玻璃有厚度感）
+     2. backdrop-filter 模糊 + 提高饱和度（透出背后的内容）
+     3. 边缘折射高光：
+        - 顶部 1px 亮边（光从上面来）
+        - 底部极淡的一圈（玻璃底部的反射）
+     再加一层很淡的外阴影，让玻璃「浮」起来。
+   ============================================================ */
+.card {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.42)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.30),
+    0 6px 24px rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.card.plain {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.86),
+    rgba(255, 255, 255, 0.66)
+  );
+}
+/* 列表型卡片：里面装的是 .fund-row 列表，行自身已带上下留白，
+   所以卡片上下内边距压到 2px，只保留左右。 */
+.card-list { padding: 2px var(--space-4); }
+.card-note { font-size: var(--fs-kicker); color: var(--text-mute); }
+
+/* ---------------- 章节标题 ---------------- */
+.section-title {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.4px;
+  margin: var(--space-5) var(--space-1) var(--space-2);
+}
+.section-title:first-child { margin-top: var(--space-1); }
+
+/* ---------------- 基金列表行 ---------------- */
+.fund-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+.fund-row:last-child { border-bottom: 0; }
+.fund-row:active { background: rgba(15, 23, 42, 0.03); }
+/* 纯展示行：不可点（如「我的」页的信息行） */
+.fund-row-static { cursor: default; }
+/* 去掉底部分隔线（不需要与下一行分隔时用） */
+.fund-row-noline { border-bottom: 0; }
+.fund-main { flex: 1; min-width: 0; }
+.fund-name {
+  font-size: var(--fs-body); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fund-meta {
+  font-size: var(--fs-kicker); color: var(--text-mute);
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fund-num { text-align: right; flex: none; }
+/* 展示型文字：不要标题那样的字重（「我的」页的信息行用） */
+.fund-name-normal { font-weight: 400; }
+/* 行尾的次要信息：不被压缩、去掉顶部对齐偏移 */
+.fund-meta-end { flex: none; margin-top: 0; }
+.fund-nav {
+  font-family: var(--font-num);
+  font-size: var(--fs-sub); font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.fund-chg {
+  font-family: var(--font-num);
+  font-size: var(--fs-caption);
+  margin-top: 2px;
+}
+
+/* ---------------- 数值配色 ---------------- */
+.num { font-family: var(--font-num); letter-spacing: -0.3px; }
+.up { color: var(--up); }
+.down { color: var(--down); }
+.flat { color: var(--flat); }
+.pill {
+  display: inline-block;
+  font-family: var(--font-num);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+.pill.up { background: var(--up-soft); }
+.pill.down { background: var(--down-soft); }
+.pill.flat { background: rgba(139, 147, 163, 0.12); }
+
+/* ---------------- 大数值展示 ---------------- */
+.hero-num {
+  font-family: var(--font-num);
+  font-size: var(--fs-num-xl);
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+.hero-label { font-size: var(--fs-kicker); color: var(--text-mute); margin-bottom: 4px; }
+.hero-row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
+
+/* ---------------- 指标网格 ---------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: var(--space-3);
+}
+.stat {
+  background: var(--surface-solid);
+  padding: var(--space-3);
+}
+.stat-k { font-size: var(--fs-kicker); color: var(--text-mute); margin-bottom: 4px; }
+.stat-v { font-family: var(--font-num); font-size: var(--fs-sub); font-weight: 600; }
+
+/* ---------------- 标签 ---------------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--fs-kicker);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.chip.teal { background: var(--teal-soft); color: var(--teal); }
+.chip.info { background: var(--info-soft); color: var(--info); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.danger { background: var(--danger-soft); color: var(--danger); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------------- 按钮 ---------------- */
+.btn {
+  min-height: var(--touch-min);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(59, 110, 246, 0.28);
+}
+.btn-primary:active { transform: scale(0.975); box-shadow: 0 1px 4px rgba(59, 110, 246, 0.24); }
+.btn-block { display: block; width: 100%; }
+.btn:disabled { opacity: 0.5; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--accent); }
+.btn-sm { min-height: 34px; padding: 0 var(--space-3); font-size: var(--fs-caption); }
+
+/* ---------------- 表单 ---------------- */
+.field { display: block; margin-bottom: var(--space-3); }
+.field > span {
+  display: block;
+  font-size: var(--fs-kicker);
+  color: var(--text-mute);
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: var(--fs-body);
+  outline: none;
+  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field select {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: var(--fs-body);
+  outline: none;
+}
+.field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.dt-paused { color: var(--warn); font-weight: 600; font-size: var(--fs-kicker); }
+
+/* ---------------- 提示条 ---------------- */
+.callout {
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  background: var(--info-soft);
+  color: var(--text-soft);
+  border-left: 3px solid var(--info);
+}
+.callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+.callout.danger { background: var(--danger-soft); border-left-color: var(--danger); }
+.callout.teal { background: var(--teal-soft); border-left-color: var(--teal); }
+
+/* 带操作按钮的提示条：左文右钮。 */
+.callout-row {
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* 「已更新到 vX」提示条 —— JS 在 5 秒时把它移出 DOM，
+   这里负责最后 0.4 秒淡出，免得突然消失显得突兀。
+   （动画时长 0.4 + 延迟 4.6 = 正好 5 秒，与 App.jsx 里的定时器对齐；
+     改其中一个必须同时改另一个） */
+.callout.auto-hide {
+  animation: calloutAutoHide 0.4s ease 4.6s forwards;
+}
+@keyframes calloutAutoHide {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ---------------- 空状态 / 加载 ---------------- */
+.empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+  color: var(--text-mute);
+}
+.empty-title { font-size: var(--fs-body); font-weight: 500; color: var(--text-soft); margin-bottom: 6px; }
+.empty-note { font-size: var(--fs-caption); }
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(15,23,42,.06) 25%, rgba(15,23,42,.10) 37%, rgba(15,23,42,.06) 63%);
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: sk 1.4s ease infinite;
+}
+@keyframes sk {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---------------- 走势图 ---------------- */
+/* Sparkline（Detail.jsx）的尺寸由组件内的内联 style 控制：
+   宽度随容器、高度固定 72px，故此处无需样式。 */
+
+/* ---------------- 隐私政策弹窗 ---------------- */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  padding-top: calc(var(--safe-top) + var(--space-4));
+  padding-bottom: calc(var(--safe-bottom) + var(--space-4));
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.gate-card {
+  width: 100%;
+  max-width: 440px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* 弹窗背后是深色遮罩，玻璃要「实」一点才不发灰，
+     所以这里的不透明度比普通卡片高，但保留模糊和高光边 */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.93),
+    rgba(255, 255, 255, 0.80)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 20px 60px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  overflow: hidden;
+}
+.gate-scroll { overflow-y: auto; padding: var(--space-4); }
+.gate-head {
+  padding: var(--space-5) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.gate-title { font-size: var(--fs-h3); font-weight: 600; }
+.gate-sub { font-size: var(--fs-kicker); color: var(--text-mute); margin-top: 4px; }
+.gate-body { padding: var(--space-4); overflow-y: auto; flex: 1; }
+.gate-p { font-size: var(--fs-caption); color: var(--text-soft); margin: 0 0 var(--space-3); }
+.gate-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: var(--fs-caption);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: var(--space-2);
+}
+.gate-actions {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+/* ---------------- 开关 ---------------- */
+.switch {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  flex: none;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+  padding: 0;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+  transition: transform var(--motion-fast) var(--ease);
+}
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(18px); }
+.switch:disabled { opacity: 0.45; }
+
+/* ---------------- 进度条（一只牛在跑）---------------- */
+.progress-track {
+  position: relative;
+  height: 26px;
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+}
+.progress-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #6b95ff);
+  transition: width 150ms linear;
+}
+.progress-cow {
+  position: absolute;
+  top: 50%;
+  font-size: 22px;
+  line-height: 1;
+  transform: translate(-50%, -50%) scaleX(-1);
+  transition: left 150ms linear;
+  animation: cow-run 420ms ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes cow-run {
+  0%, 100% { transform: translate(-50%, -50%) scaleX(-1); }
+  50%      { transform: translate(-50%, -64%) scaleX(-1); }
+}
+
+/* ============================================================
+   大屏适配（平板 / 折叠屏展开态 / 桌面浏览器）
+   ------------------------------------------------------------
+   为什么手机端不需要额外处理：
+     viewport 设了 width=device-width，CSS 宽度已被归一化。
+     720p 手机（dpr 2）→ CSS 宽 360px
+     1440p 手机（dpr 3.5）→ CSS 宽 411px
+     实际跨度只有 320–480px，固定 px 完全够用。
+
+   真正需要处理的是「宽到不像手机」的场景：
+   平板、折叠屏展开、电脑浏览器。这时把 App 限制成手机宽度居中，
+   而不是把内容横向拉满。
+   ============================================================ */
+@media (min-width: 600px) {
+  .app-shell {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 60px rgba(15, 23, 42, 0.10);
+  }
+  /* Dock 不用在这里特殊处理 —— 主规则里的 min(calc(100% - 44px), 420px) 已经搞定 */
+  .app-header {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+/* 极窄屏（老机型 320px 宽）：收紧一点内边距，别让内容贴边 */
+@media (max-width: 340px) {
+  :root {
+    --page-pad: 12px;
+  }
+}
+
+/* 字号做小范围弹性：窄屏不挤，宽屏不空 */
+@media (min-width: 400px) {
+  :root {
+    --fs-h1: 32px;
+    --fs-num-xl: 36px;
+  }
+}
+
+/* ---------------- 详情页：分析 / 资讯 ----------------
+   分析 = 核心指标 + 回撤修复 + 定投回测；
+   资讯 = 基金公告 + 重仓股新闻（数据抓取见 lib/fundNews.js）。 */
+
+/* 指标旁的「?」按钮：点一下就地看术语说明 */
+.metric-help-btn {
+  width: 14px; height: 14px; padding: 0; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: transparent; color: var(--text-mute);
+  font-size: 9px; line-height: 1; cursor: pointer;
+}
+.metric-help-btn:active { background: var(--accent-soft); }
+.metric-help-box {
+  margin: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--info-soft);
+  font-size: var(--fs-caption); line-height: 1.7; color: var(--text-soft);
+}
+.metric-help-box b { margin-right: 6px; }
+
+/* 分析卡的说明小字（回撤叙述 / 定投叙述） */
+.analysis-note {
+  margin: var(--space-3) 2px 0;
+  font-size: var(--fs-kicker); line-height: 1.75; color: var(--text-mute);
+}
+.analysis-note b { color: var(--text-soft); font-weight: 600; }
+
+/* 定投回测的三个参数 */
+.analysis-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-2); }
+.analysis-fields .field { margin-bottom: 0; }
+.analysis-fields .field input, .analysis-fields .field select {
+  min-height: 36px; padding: 0 8px; font-size: var(--fs-caption);
+}
+
+/* 资讯分组的标题 */
+.news-group-title {
+  margin: var(--space-4) var(--space-1) var(--space-2);
+  font-size: var(--fs-caption); font-weight: 600; color: var(--text-mute);
+}
+
+/* ---------------- 深度分析卡 ---------------- */
+/* 结论块：定性大字 + 位置/趋势 pill */
+.da-verdict { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.da-verdict strong { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+
+/* 行式列表（替代 PC 宽表格）：左标签窄列，右数值列带说明小字 */
+.da-row {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.da-row:last-of-type { border-bottom: 0; }
+.da-row-k { flex: 0 0 84px; font-size: var(--fs-caption); font-weight: 600; }
+.da-row-stars { flex: 0 0 54px; font-size: var(--fs-caption); color: var(--warn); letter-spacing: -1px; }
+.da-row-v { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.da-row-v b { font-family: var(--font-num); font-size: var(--fs-caption); font-weight: 700; }
+.da-row-v small { font-size: var(--fs-kicker); line-height: 1.6; color: var(--text-mute); }
+
+/* 催化事件行：类型标签 + 标题 + 来源时间 */
+.da-catalyst {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  padding: var(--space-3) 2px;
+  border-bottom: 1px solid var(--border);
+}
+.da-catalyst:last-child { border-bottom: 0; }
+.da-catalyst-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.da-catalyst-main strong { font-size: var(--fs-caption); font-weight: 600; line-height: 1.55; }
+.da-catalyst-main small { font-size: var(--fs-kicker); color: var(--text-mute); }
+
+/* 投资建议：分组标题 + 条目 */
+.da-advice-title { font-size: var(--fs-caption); font-weight: 700; margin-top: var(--space-3); }
+.da-advice-item {
+  margin: 4px 0 0;
+  font-size: var(--fs-kicker); line-height: 1.75; color: var(--text-mute);
+}
+
+/* 一行资讯：标题 + 来源时间；可点的行带箭头 */
+.news-row {
+  display: flex; width: 100%; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) 2px;
+  border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; text-align: left; color: inherit;
+  text-decoration: none;
+}
+.news-row:last-child { border-bottom: 0; }
+.news-row:active { opacity: .72; }
+.news-row-main { display: block; flex: 1; min-width: 0; }
+.news-row-main strong {
+  display: block; overflow: hidden;
+  font-size: var(--fs-caption); font-weight: 500; line-height: 1.5; color: var(--text-soft);
+  text-overflow: ellipsis;
+}
+.news-row-main small {
+  display: block; overflow: hidden; margin-top: 4px;
+  font-size: 10px; color: var(--text-mute); white-space: nowrap; text-overflow: ellipsis;
+}
+.news-tag {
+  margin-right: 6px; padding: 1px 6px; border-radius: 99px;
+  background: var(--up-soft); color: var(--up); font-size: 9px; font-weight: 600;
+}
+@media (max-width: 340px) {
+  .analysis-fields { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------------- 全面屏手势 ----------------
+   侧滑返回的跟手位移发生在 .app-body 上（见 lib/gestures.js），
+   桌签和顶栏都在 body 外，不受影响。 */
+
+/* 下拉刷新指示器：默认藏在内容上方，手势把它拉下来 */
+.pull-indicator {
+  position: absolute; left: 50%; top: 6px; z-index: 5;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.94); border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(15,23,42,.08);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  font-size: 10px; color: var(--text-mute); white-space: nowrap;
+  transform: translate(-50%, -120%);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.pull-spinner {
+  width: 12px; height: 12px; flex: none;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%;
+}
+.pull-indicator.is-refreshing .pull-spinner {
+  animation: pullSpin 800ms linear infinite;
+}
+@keyframes pullSpin { to { transform: rotate(360deg); } }
+
+/* ---------------- 穿透分析 ----------------
+   行业分布条 + 人读叙述。集中在卡片里，视觉上比回撤/定投更轻。 */
+
+/* 一行行业：名称 + 占比条 + 数值 */
+.insight-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0;
+}
+.insight-row + .insight-row { border-top: 1px solid var(--border); }
+.insight-name {
+  flex: 0 0 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: var(--fs-caption); color: var(--text-soft);
+}
+.insight-bar {
+  flex: 1; height: 6px; border-radius: 99px;
+  background: rgba(31,55,39,.07); overflow: hidden;
+}
+.insight-bar i {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(59,110,246,.55), rgba(59,110,246,.85));
+}
+.insight-pct {
+  flex: none; min-width: 52px; text-align: right;
+  font-size: var(--fs-caption); font-weight: 600; color: var(--text);
+}
+
+/* 人读叙述：每段一句结论 */
+.insight-note {
+  margin: 0;
+  font-size: var(--fs-caption); line-height: 1.8; color: var(--text-soft);
+}
+.insight-note + .insight-note { margin-top: 8px; }
+
+/* ============================================================
+   功能样式
+   ------------------------------------------------------------
+   多基金对比 / 大盘指数 / 组合工具 / 决策纪律线。
+   全部复用现有卡片与令牌，不引入新框架。
+   ============================================================ */
+
+/* 对比表：移动端横向滚动 */
+.cmp-wrap { padding: 8px 0 12px; }
+.cmp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cmp-table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: var(--fs-caption); }
+.cmp-table th { font-weight: 600; color: var(--text-mute); text-align: right; padding: 8px 10px; white-space: nowrap; }
+.cmp-table th.cmp-name { text-align: left; }
+.cmp-table td { padding: 10px; text-align: right; border-top: 1px solid var(--border); white-space: nowrap; }
+.cmp-table td.cmp-name { text-align: left; white-space: normal; }
+.cmp-table td.cmp-name strong { display: block; font-size: var(--fs-body); color: var(--text); }
+.cmp-table td.cmp-name small { display: block; color: var(--text-mute); font-size: var(--fs-kicker); margin-top: 2px; }
+.cmp-table tbody tr { cursor: pointer; }
+.cmp-table tbody tr:active { background: var(--accent-soft); }
+.cmp-error td { color: var(--text-mute); }
+.cmp-fail { text-align: center !important; color: var(--danger); }
+
+/* 指数卡网格 */
+.idx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.idx-card {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft); text-align: left; cursor: pointer;
+  font-family: inherit; color: inherit;
+}
+.idx-card-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.idx-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.idx-head strong { font-size: var(--fs-caption); color: var(--text); }
+.idx-value { font-family: var(--font-num); font-size: var(--fs-num); color: var(--text); }
+.idx-pct { font-size: var(--fs-caption); font-weight: 600; }
+.idx-spark { width: 100%; height: 38px; display: block; margin-top: 2px; }
+.idx-nospark { height: 38px; display: flex; align-items: center; font-size: var(--fs-kicker); color: var(--text-mute); }
+.idx-time { font-size: var(--fs-kicker); color: var(--text-mute); }
+.idx-skeleton { min-height: 96px; }
+
+/* K 线大图 */
+.kline-range { display: flex; justify-content: space-between; font-size: var(--fs-kicker); color: var(--text-mute); margin-bottom: 6px; }
+.kline-svg { width: 100%; height: 150px; display: block; }
+
+/* 行业板块热力图 */
+.sector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sector-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 8px 4px; border-radius: 8px; min-height: 52px;
+  color: #fff; text-align: center; overflow: hidden;
+}
+.sector-cell span { font-size: var(--fs-kicker); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sector-cell b { font-size: var(--fs-kicker); font-family: var(--font-num); }
+
+/* AI 设置 + 对话 */
+.ai-key-row { display: flex; gap: 8px; align-items: center; }
+.ai-key-row input { flex: 1; min-width: 0; }
+.ai-actions { display: flex; gap: 8px; }
+.ai-thread { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.ai-msg { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 10px; max-width: 94%; }
+.ai-msg-user { background: var(--accent-soft); align-self: flex-end; }
+.ai-msg-assistant { background: var(--surface-solid); border: 1px solid var(--border); align-self: flex-start; }
+.ai-msg-role { font-size: var(--fs-kicker); color: var(--text-mute); }
+.ai-msg-body { font-size: var(--fs-caption); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.ai-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.ai-input-row input {
+  flex: 1; min-width: 0; min-height: var(--touch-min); padding: 0 var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface-solid); color: var(--text); font-size: var(--fs-body);
+}
+
+/* 组合工具通用 */
+.pp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--fs-caption); color: var(--text-soft); }
+.pp-list { margin-top: 8px; }
+.pp-row { display: flex; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--border); font-size: var(--fs-caption); }
+.pp-row:first-child { border-top: 0; }
+.pp-row b em { font-style: normal; font-size: var(--fs-kicker); opacity: .75; margin-left: 4px; }
+.pp-sub { margin: 14px 0 6px; font-size: var(--fs-kicker); color: var(--text-mute); letter-spacing: .04em; }
+.pp-overlap { padding: 8px 0; border-top: 1px solid var(--border); }
+.pp-overlap:first-of-type { border-top: 0; }
+.pp-overlap-head { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-caption); }
+.pp-overlap-head b { color: var(--warn); font-weight: 600; }
+.pp-overlap small { display: block; margin-top: 3px; font-size: var(--fs-kicker); color: var(--text-mute); line-height: 1.6; }
+.pp-div-title { max-width: 62%; text-align: right; font-weight: 500; color: var(--text-soft); }
+.pp-twr { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: var(--fs-caption); color: var(--text-soft); }
+.pp-twr b { font-family: var(--font-num); }
+.pp-bars { display: flex; flex-direction: column; gap: 6px; }
+.pp-bar-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-caption); }
+.pp-bar-name { flex: 0 0 84px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-soft); }
+.pp-bar-track { flex: 1; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
+.pp-bar-track i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, rgba(59,110,246,.55), rgba(59,110,246,.9)); }
+.pp-bar-row b { flex: none; min-width: 48px; text-align: right; }
+.cmp-chart { width: 100%; height: 96px; display: block; margin-top: 10px; }
+
+/* 再平衡 */
+.rb-list { margin-top: 8px; }
+.rb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); }
+.rb-row:first-child { border-top: 0; }
+.rb-main strong { display: block; font-size: var(--fs-caption); color: var(--text); }
+.rb-main small { display: block; font-size: var(--fs-kicker); color: var(--text-mute); margin-top: 3px; }
+.rb-input { width: 52px; padding: 2px 6px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-solid); color: var(--text); font-size: var(--fs-kicker); text-align: right; }
+.alert-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); }
+.alert-nav-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--fs-caption); color: var(--text-soft); }
+.rb-action { text-align: right; }
+.rb-action b { display: block; font-size: var(--fs-caption); }
+.rb-action small { font-size: var(--fs-kicker); color: var(--text-mute); }
+
+/* 目标规划（C17 完整版：多目标 + 增删改） */
+.goal-principal { font-size: var(--fs-caption); color: var(--text-soft); padding: 8px 0 12px; }
+.goal-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.goal-form .field { margin: 0; }
+.goal-form-actions { display: flex; gap: 8px; }
+.goal-item { padding: 10px 0; border-top: 1px solid var(--border); }
+.goal-item:first-child { border-top: 0; }
+.goal-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.goal-item-head strong { font-size: var(--fs-body); color: var(--text); }
+.goal-ok { font-size: var(--fs-caption); font-weight: 600; color: var(--down); }
+.goal-bad { font-size: var(--fs-caption); font-weight: 600; color: var(--danger); }
+.goal-item-meta { font-size: var(--fs-kicker); color: var(--text-mute); margin-top: 3px; }
+.goal-item-nums { font-size: var(--fs-caption); color: var(--text-soft); margin-top: 5px; }
+.goal-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+/* 决策纪律线 */
+.dec-line { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-top: 1px solid var(--border); }
+.dec-line:first-of-type { border-top: 0; }
+.dec-line b { font-size: var(--fs-caption); color: var(--text); }
+.dec-line span { font-size: var(--fs-caption); line-height: 1.7; color: var(--text-soft); }
+.dec-risk b { color: var(--danger); }
+.dec-ok b { color: var(--down); }
+.dec-info b { color: var(--text-mute); }
+
+/* ============================================================
+   深色模式覆盖（C6）
+   ------------------------------------------------------------
+   现有卡片/底栏/持仓卡用了硬编码的白色渐变与深色文字，
+   这里在 [data-theme='dark'] 下统一换成深色面 + 亮色文字。
+   只改颜色，不改任何尺寸/布局。
+   ============================================================ */
+[data-theme='dark'] .watch-welcome h1,
+[data-theme='dark'] .watch-section-head h2 {
+  color: var(--text);
+}
+[data-theme='dark'] .watch-welcome h1 em {
+  color: var(--teal);
+}
+[data-theme='dark'] .watch-welcome p,
+[data-theme='dark'] .section-overline,
+[data-theme='dark'] .watch-eyebrow {
+  color: var(--text-mute);
+}
+[data-theme='dark'] .app-header {
+  background: linear-gradient(180deg, rgba(24, 30, 40, 0.94), rgba(24, 30, 40, 0.74));
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06), 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+[data-theme='dark'] .card {
+  background: linear-gradient(135deg, rgba(32, 40, 53, 0.94), rgba(24, 30, 40, 0.82));
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02),
+    0 6px 24px rgba(0, 0, 0, 0.35);
+}
+[data-theme='dark'] .card.plain {
+  background: linear-gradient(135deg, rgba(34, 42, 56, 0.97), rgba(26, 33, 44, 0.90));
+}
+[data-theme='dark'] .tabbar {
+  background: linear-gradient(180deg, rgba(32, 40, 53, 0.96), rgba(24, 30, 40, 0.90));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+[data-theme='dark'] .rh-card,
+[data-theme='dark'] .rh-list,
+[data-theme='dark'] .watch-list-card,
+[data-theme='dark'] .quick-card,
+[data-theme='dark'] .privacy-note,
+[data-theme='dark'] .market-card {
+  background: rgba(30, 38, 50, 0.92);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
+}
+[data-theme='dark'] .rh-label,
+[data-theme='dark'] .rh-pnl span,
+[data-theme='dark'] .rh-stats span,
+[data-theme='dark'] .rh-row-meta i {
+  color: var(--text-mute);
+}
+[data-theme='dark'] .rh-num,
+[data-theme='dark'] .rh-pnl strong,
+[data-theme='dark'] .rh-stats strong,
+[data-theme='dark'] .rh-row-main strong,
+[data-theme='dark'] .rh-row-num strong {
+  color: var(--text);
+}
+[data-theme='dark'] .rh-stats,
+[data-theme='dark'] .rh-stats > div + div,
+[data-theme='dark'] .rh-row {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+[data-theme='dark'] .quick-icon {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--text-soft);
+}
+[data-theme='dark'] .switch {
+  background: rgba(255, 255, 255, 0.20);
+}
+/* ⚠️ 必须在 .switch 之后：否则 [data-theme] .switch 会压过 .switch.on，
+   开启态也显示成灰色。 */
+[data-theme='dark'] .switch.on {
+  background: var(--accent);
+}
+[data-theme='dark'] .switch::after {
+  background: #e8ecf3;
+}
+[data-theme='dark'] .app-shell::before {
+  opacity: 0.30;
+}
+[data-theme='dark'] .field input,
+[data-theme='dark'] .rb-input {
+  background: rgba(20, 26, 35, 0.92);
+  color: var(--text);
+  border-color: var(--border-strong);
+}

@@ -1,5 +1,5 @@
 {
-  "appId": "com.fundsandbox.app",
+  "appId": "com.fundapp",
   "appName": "基金沙盒",
   "webDir": "dist",
   "server": {
@@ -7,5 +7,16 @@
   },
   "android": {
     "allowMixedContent": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "resetWhenUpdate": true,
+      "allowModifyUrl": true,
+      "statsUrl": ""
+    }
   }
 }

@@ -13,11 +13,6 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- 状态栏透明 + 让 WebView 铺满全屏：顶部内容延伸到摄像头/刘海区域，
-             由 CSS 的 env(safe-area-inset-top) 负责避让 -->
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <!-- 浅色顶栏背景 → 状态栏用深色图标（时钟/电量看得清） -->
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  自适应图标的背景：蓝 -> 青竖向渐变（#3B6EF6 -> #0D9488，自上而下），
+  这样传统方形图标和自适应图标看起来是同一个。
+
+  为什么非得有这个文件：
+   自适应图标需要非纯白背景：前景 ic_launcher_foreground.png 是
+   「透明底 + 白色笔画」的象形「基」—— 白笔画画在白底上，
+   桌面上看到的就是一块白板，故背景走蓝->青渐变。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#3B6EF6"
+        android:endColor="#0D9488" />
+</shape>

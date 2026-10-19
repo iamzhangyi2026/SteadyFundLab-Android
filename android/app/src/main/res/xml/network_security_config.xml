@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置
+
+  只对本机地址放开明文 HTTP（用于本地测试热更新，配合 adb reverse）。
+  其余所有域名仍然强制 HTTPS，不做全局放开。
+
+  adb reverse tcp:8080 tcp:8080 之后，
+  手机访问 http://localhost:8080 会被转发到电脑的 8080 端口。
+
+  注意：XML 注释里不能出现连续两个减号，否则解析器直接报错。
+-->
 <network-security-config>
-    <!-- 允许 cleartext HTTP 访问（部分行情接口为 http） -->
-    <base-config cleartextTrafficPermitted="true">
-        <trust-anchors>
-            <certificates src="system" />
-        </trust-anchors>
-    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
 </network-security-config>

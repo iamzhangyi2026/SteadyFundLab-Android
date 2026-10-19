@@ -1,0 +1,166 @@
+// src/lib/navlab.js · 净值实验室
+// ------------------------------------------------------------
+// 基于真实历史净值序列，纯前端算两件事：
+//   ① 回撤修复 —— 直面负面数据，回答「最深跌多少、跌了多久、多久才涨回来」
+//   ② 定投回测 —— 模拟定期定额买入，并与同期「一把梭」对比
+// 纯计算、零请求；数据来自 fetchFund 的真实净值序列。
+//
+// 口径：优先用**累计净值**（已把分红加回，衡量真实收益更公平），缺失回退单位净值。
+
+const DAY = 24 * 60 * 60 * 1000
+
+function points(series) {
+  return (series || [])
+    .map((r) => {
+      if (!r || !r.date) return null
+      const v = r.acc_nav != null ? r.acc_nav : r.nav
+      return v != null && v > 0 ? { date: r.date, v } : null
+    })
+    .filter(Boolean)
+}
+
+function dayDiff(a, b) {
+  const t1 = new Date(a).getTime()
+  const t2 = new Date(b).getTime()
+  if (Number.isNaN(t1) || Number.isNaN(t2)) return null
+  return Math.round((t2 - t1) / DAY)
+}
+
+/** 累计净值历史 → 回撤修复分析 */
+export function drawdownRecovery(series) {
+  const pts = points(series)
+  if (pts.length < 2) return null
+
+  let peak = pts[0].v
+  let peakIdx = 0
+  let mdd = 0
+  let troughIdx = 0
+  let mddPeakIdx = 0
+
+  for (let i = 0; i < pts.length; i++) {
+    const v = pts[i].v
+    if (v > peak) {
+      peak = v
+      peakIdx = i
+    }
+    const dd = peak ? v / peak - 1 : 0
+    if (dd < mdd) {
+      mdd = dd
+      troughIdx = i
+      mddPeakIdx = peakIdx
+    }
+  }
+
+  const peakPt = pts[mddPeakIdx]
+  const troughPt = pts[troughIdx]
+  const lastPt = pts[pts.length - 1]
+  const flat = mdd >= -0.0001
+
+  let recoveryIdx = -1
+  if (!flat) {
+    for (let i = troughIdx + 1; i < pts.length; i++) {
+      if (pts[i].v >= peakPt.v) {
+        recoveryIdx = i
+        break
+      }
+    }
+  }
+
+  const recovered = recoveryIdx >= 0
+  const recoveryPt = recovered ? pts[recoveryIdx] : null
+
+  return {
+    flat,
+    maxDrawdown: +(mdd * 100).toFixed(2),
+    peakDate: peakPt.date,
+    peakValue: +peakPt.v.toFixed(4),
+    troughDate: troughPt.date,
+    troughValue: +troughPt.v.toFixed(4),
+    declineDays: flat ? 0 : dayDiff(peakPt.date, troughPt.date),
+    recovered,
+    recoveryDate: recoveryPt ? recoveryPt.date : null,
+    recoveryDays: recoveryPt ? dayDiff(troughPt.date, recoveryPt.date) : null,
+    pendingDays: !flat && !recovered ? dayDiff(troughPt.date, lastPt.date) : null,
+    roundTripDays: recovered ? dayDiff(peakPt.date, recoveryPt.date) : null,
+    lastDate: lastPt.date,
+    lastValue: +lastPt.v.toFixed(4),
+  }
+}
+
+/** 年化波动率（%）—— 用累计净值日收益率的标准差 × √252。数据不足 30 个点返回 null */
+export function annualVol(series) {
+  const pts = points(series)
+  if (pts.length < 30) return null
+  const rets = []
+  for (let i = 1; i < pts.length; i++) rets.push(pts[i].v / pts[i - 1].v - 1)
+  const mean = rets.reduce((a, b) => a + b, 0) / rets.length
+  const varr = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1)
+  return +(Math.sqrt(varr) * Math.sqrt(252) * 100).toFixed(2)
+}
+
+// 定投回测：净值只按交易日记录，用交易日步进模拟扣款节奏，比按自然日更贴合真实定投
+export const FREQ_STEP = { weekly: 5, biweekly: 10, monthly: 21 }
+export const FREQ_LABEL = { weekly: '每周', biweekly: '每两周', monthly: '每月' }
+export const WINDOW_LABEL = { 365: '近 1 年', 730: '近 2 年', 1095: '近 3 年', 0: '全部历史' }
+
+/**
+ * 定投回测：按交易日步进模拟扣款
+ * @param {Array} series 净值序列（升序）
+ * @param {{amount?:number, frequency?:'weekly'|'biweekly'|'monthly', windowDays?:number}} opts
+ *   amount=每期金额；windowDays=回测窗口（0 表示全部历史）
+ * @returns {null|{periods:number, invested:number, value:number, profit:number, profitPct:number, annualized:number}}
+ */
+export function dingtouBacktest(series, { amount = 500, frequency = 'monthly', windowDays = 0 } = {}) {
+  const all = points(series)
+  if (all.length < 2) return null
+
+  let pts = all
+  if (windowDays && windowDays > 0) {
+    const last = new Date(all[all.length - 1].date).getTime()
+    const start = last - windowDays * DAY
+    const sliced = all.filter((p) => new Date(p.date).getTime() >= start)
+    // 窗口内数据太少时退回全量，避免算出来 1 期、没有参考价值
+    if (sliced.length >= 30) pts = sliced
+  }
+
+  const step = FREQ_STEP[frequency] || FREQ_STEP.monthly
+  const per = Number(amount) || 0
+  if (per <= 0) return null
+
+  let shares = 0
+  let invest = 0
+  let periods = 0
+  for (let i = 0; i < pts.length; i += step) {
+    shares += per / pts[i].v
+    invest += per
+    periods += 1
+  }
+  if (periods === 0) return null
+
+  const firstV = pts[0].v
+  const lastV = pts[pts.length - 1].v
+
+  const marketValue = shares * lastV
+  const profit = marketValue - invest
+  const roi = (marketValue / invest - 1) * 100
+
+  // 对照：期初一把梭投入同样多的钱
+  const lumpValue = (invest / firstV) * lastV
+  const lumpRoi = (lumpValue / invest - 1) * 100
+
+  return {
+    periods,
+    invest: +invest.toFixed(2),
+    marketValue: +marketValue.toFixed(2),
+    profit: +profit.toFixed(2),
+    roi: +roi.toFixed(2),
+    lumpValue: +lumpValue.toFixed(2),
+    lumpRoi: +lumpRoi.toFixed(2),
+    startDate: pts[0].date,
+    endDate: pts[pts.length - 1].date,
+    startValue: +firstV.toFixed(4),
+    endValue: +lastV.toFixed(4),
+    days: dayDiff(pts[0].date, pts[pts.length - 1].date),
+    edge: +(roi - lumpRoi).toFixed(2),
+  }
+}
