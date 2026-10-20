@@ -1,9 +1,9 @@
 {
   "name": "fund-app",
   "private": true,
-  "version": "2.2",
+  "version": "2.3",
   "type": "module",
-  "description": "基金沙盒 · 移动端（Capacitor + React，纯客户端零后端）",
+  "description": "基金沙盒 · 纯客户端移动端原型（Capacitor + React）",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -114,10 +114,10 @@ export async function sendTestNotification() {
 /* ------------------------------------------------------------------
    启动时自动更新
    ------------------------------------------------------------------
-   打开 App 就检查有没有热更新。
+    改版：打开 App 就刷新，看有没有热更新。
 
      ① 热更新（改界面 / 逻辑）—— 自动下载并切换，用户什么都不用点。
-        切换必须用 set()（立即生效并重启）：next() 不保证立即生效
+        切换必须用 set()（立即生效并重启）：next() 在无效
         （插件日志仍显示 Built-in bundle is active）。
         重启发生在启动早期、用户还没开始操作时，几乎无感；
         重启后版本已一致，不会再重启 —— 不会死循环。
@@ -127,15 +127,17 @@ export async function sendTestNotification() {
         所以只能提示：发横幅通知，点通知直接进「我的」页，
         由用户自己点下载 + 在系统安装页点确认。
 
-   ⚠️ 不做节流 —— 每次启动都检查。
-      代价是每次启动多两个小请求（热更新清单 / 安装包清单）。
+   ⚠️ 不再做 1 小时节流 —— 每次启动都检查。
+      代价是每次启动多两个小请求（latest.json / version.json）。
    ------------------------------------------------------------------ */
 
 /* APK 更新结果持久化：Me.jsx 读同一个 key 显示「安装包有新版本」 */
 const APK_PENDING_KEY = 'pending_apk_update'
 /* 已经弹过横幅的 APK build —— 只在「读不到本机 versionCode」时兜底。
-   ⚠️ 为什么不能拿硬编码常量去比：硬编码值恒定为 1，而远端 build 是递增的，
-      checkRemoteVersion 的 hasNew 会永远为 true，每次启动都弹横幅形成骚扰。
+   ⚠️ 为什么不能拿硬编码常量去比（本项目历史上用 APP_BUILD = 1）：
+      硬编码值恒为 1，而 version.json 里的 build 是手动递增的（3/4/5…），
+      checkRemoteVersion 的 hasNew 永远为 true。取消启动节流之后，
+      照它判断就是每次启动都弹一条横幅 —— 那是骚扰。
 
    ⚠️ 主判据是**本机真实 versionCode**（installedBuild），不是这个 key：
       用「本机已装的 build」比对有个关键好处 —— 它是自愈的。
@@ -148,6 +150,7 @@ const APK_NOTIFIED_KEY = 'apk_notified_build'
 /* ------------------------------------------------------------------
    红点（App 内指示器）—— 通用机制，不只对「更新」生效
    ------------------------------------------------------------------
+   ：「红点不一定只是更新才有哦，其它通知，同样的规则。」
 
    生命周期（对所有类型一视同仁）：
      新通知产生 → 对应页签亮红点
@@ -383,9 +386,9 @@ export async function onNotificationClick(handler) {
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
     /* ⚠️ 事件名必须是 'localNotificationActionPerformed'。
-       写成其它名字插件根本不认，
+       曾经写成 'actionPerformed' —— 那个名字插件根本不认，
        监听器永远不会被调用，表现为「点通知毫无反应、红点也不灭」。
-       （名称以插件定义为准：
+       （ 发现，翻插件定义确认：
          node_modules/@capacitor/local-notifications/dist/esm/definitions.d.ts）
 
        插件端 notifyListeners(..., retainUntilConsumed = true)，

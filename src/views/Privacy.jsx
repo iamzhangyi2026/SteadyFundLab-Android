@@ -11,6 +11,7 @@ export default function Privacy({ onBack }) {
         <div className="app-header-inner">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="app-title">隐私政策</div>
+            <div className="app-sub">更新日期</div>
           </div>
         </div>
       </header>

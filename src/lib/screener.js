@@ -117,7 +117,7 @@ export async function fetchFundRank({ page = 1, size = 20, sort = '1nzf', order 
  * 每只一次 pingzhongdata 请求（走缓存）；失败的那只保持 null，不猜。
  *
  * 数据源异常跳变防护（v21 口径）：净值序列含单日 ≥50% 跳变时，
- * 分位/回撤/波动全部失真，该行标 `suspect: true`，
+ * 分位/回撤/波动全部失真（001594 ），该行标 `suspect: true`，
  * `screenRows` 会把它排除，不用失真指标参与筛选。
  */
 export async function enrichHistory(rows) {

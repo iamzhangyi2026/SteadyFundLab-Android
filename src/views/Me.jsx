@@ -72,7 +72,7 @@ export default function Me() {
   const [perm, setPerm] = useState('prompt')
   const [prefs, setPrefs] = useState(loadPrefs)
   /* 本机 APK 的 versionCode（App.getInfo().build）。
-     ⚠️ 初始值给 0，**不要**给硬编码常量——
+     ⚠️ 初始值给 0，**不要**给硬编码常量（本项目历史上叫 APP_BUILD，恒为 1）——
         那样装了 build 7 的 APK 却显示 build 1，用户会以为自己没装上。
         0 = 还没读到，界面上显示成「—」，等 installedBuild() 回来再填真值。 */
   const [installed, setInstalled] = useState(0)
@@ -89,7 +89,7 @@ export default function Me() {
        ⚠️ 以前只在点「检查」时才 setBundle，于是刚进页面时 bundle 是 null，
           `runningVersion` 回退到兜底常量 APP_VERSION（'1.0.0'）——
           结果顶部标题栏写着 v1.0.36，「当前版本」和「界面版本」却显示 1.0.0，
-          自相矛盾。 */
+          自相矛盾。（ 截图发现） */
     currentBundle().then(setBundle)
 
     // 能进到这一页，说明红点已经把用户带到了它指向的地方 → 灭掉
@@ -269,7 +269,7 @@ export default function Me() {
   }
 
   /* 通知权限引导弹窗。
-     ⚠️ showNotifyGate 必须被读取渲染，只 set 不渲染会导致通知门控不出现，
+     ⚠️ 这一段原先漏了 —— showNotifyGate 只被 set 过、从未被读取渲染，
         表现是「点『开启』按钮毫无反应」。补齐后才走通：
         点「开启」→ 弹本说明窗 → 用户点「开启」→ 才调系统权限框。 */
   if (showNotifyGate) {

@@ -54,7 +54,7 @@ async function getText(url, timeoutMs = 10000) {
 /**
  * 基金行业配置：取**最新一期报告**的行业占比。
  * ⚠️ 接口一次返回多个报告期，不筛会算出重复且矛盾的行业占比
- *    （需按报告期筛选，只取最新一期）。
+ *    （ 040001 返回 42 条，混了 2025 和 2024 两期）。
  * @returns {Promise<{allocation: Array<{industry, weight}>, reportDate: string}>}
  */
 export async function fetchIndustryAllocation(code) {
@@ -84,7 +84,7 @@ export async function fetchIndustryAllocation(code) {
   }
 }
 
-/** 行业穿透：行业配置 + 集中度判断 */
+/** 行业穿透：行业配置 + 集中度判断（analyze_exposure） */
 export async function analyzeExposure(code) {
   const { allocation, reportDate } = await fetchIndustryAllocation(code)
   if (allocation.length === 0) return { allocation: [], reportDate: '', topIndustry: '', topWeight: 0, concentrated: false }
@@ -98,7 +98,7 @@ export async function analyzeExposure(code) {
   }
 }
 
-/** 风格漂移：名字宣称的方向 vs 实际持仓 */
+/** 风格漂移：名字宣称的方向 vs 实际持仓（detect_style_drift） */
 export function detectStyleDrift(fundName, allocation) {
   const name = String(fundName || '')
   let hint = null
@@ -134,7 +134,7 @@ export function detectStyleDrift(fundName, allocation) {
   }
 }
 
-/** 把穿透结果翻译成人话 */
+/** 把穿透结果翻译成人话（build_narrative 的单基金部分） */
 export function buildFundNarrative({ fundName, exposure, drift }) {
   const paras = []
   if (!exposure?.allocation?.length) {

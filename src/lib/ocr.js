@@ -272,7 +272,7 @@ export function parseHoldingsFromText(text) {
       flush()   // 收上一块，开新块
       const nameCand = line
         // 引号 / 书名号等 OCR 噪声也一并去掉
-        .replace(/[¥￥%+\-.,:：/()（）[\]【】"“”'‘’`《》〈〉<>「」『』]/g, ' ')
+        .replace(/[¥￥%+\-.,:：/()[\]【】"“”'‘’`《》〈〉<>「」『』]/g, ' ')
         .replace(/\d+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()

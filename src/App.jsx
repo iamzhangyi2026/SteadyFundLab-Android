@@ -155,7 +155,9 @@ export default function App() {
       /* ⚠️ 只认「插件真的读到了」的版本，也就是 raw.bundle.version。
          不能拿 b.version —— 它在插件还没准备好时会回退到兜底常量
          APP_VERSION（'1.0.0'）。一旦把这个兜底值写进 seen_bundle_version，
-         下次启动一比对就误报「已更新到 vX」：用户什么都没更新却看到更新提示。 */
+         下次启动一比对就误报「已更新到 vX」：用户什么都没更新却看到更新提示。
+         （装完新 APK 第一次打开就冒出这个假提示，
+           再启动一次又没了 —— 典型的「兜底值污染持久化基线」） */
       // 显示照旧有兜底，保证界面上不会出现空白
       setVersion(b.version || APP_VERSION)
 
@@ -178,7 +180,7 @@ export default function App() {
       })
   }, [agreed])
 
-  /* 「已更新到 vX」提示条：最多 5 秒自动关掉。
+  /* 「已更新到 vX」提示条：最多 5 秒自动关掉（ 要求）。
      它只是「你已经在用新版了」的一句告知，不值得占着屏幕等用户来点。
      手动点「知道了」仍然可以立即关。
      ⚠️ 5 秒是上限，不是「等 5 秒」—— 淡出动画从 4.6 秒开始（见 app.css
@@ -227,6 +229,8 @@ export default function App() {
   }, [agreed])
 
   // 红点的另一条灭法：打开过 App 但没点进去，退出时也算「过了」。
+  // 「打开APP之后没动红点，在退出程序之后红点也消失，
+  //             直到下一次新通知产生的横幅红点。」
   useEffect(() => {
     if (!agreed) return
     let remove = () => {}
@@ -253,6 +257,9 @@ export default function App() {
   }, [agreed])
 
   /* ⚠️ 上报开关必须**每次启动**都开一次，不能只在首次同意时开。
+     之前只写在 handleAgree() 里 —— 而 handleAgree 只在隐私弹窗出现时（首次）跑，
+     老用户永远不会再走这条路 → statsUrl 一直没设 → Capgo 一条统计都不发，
+     看板里设备档案永远是空的。
      插件会把 url 持久化，重复调用没有副作用。 */
   useEffect(() => {
     if (!agreed) return

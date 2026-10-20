@@ -6,10 +6,10 @@
 
 const DAY = 86400000
 
-/* 数据源异常跳变防护：数据源偶发的口径变更或错误会在净值序列上留下
-   单日巨幅跳变（如某债券基金单位净值单日 +221%，累计净值同步跳变）。
-   口径明显异于正常公募（单日涨跌停 ±10% 传导），凡区间跨越该点的
-   收益类指标一律降级，不把失真数字当结果展示。详见 lib/navSanitize.js。 */
+/* 数据源异常跳变防护：001594 在东财源头 
+   净值 1.004 → 3.2275（+221.5%），累计净值同步跳变。口径明显异于
+   正常公募（单日涨跌停 ±10% 传导），凡区间跨越该点的收益类指标
+   一律降级，不把失真数字当结果展示。详见 lib/navSanitize.js。 */
 import { detectJumps } from './navSanitize.js'
 
 /** 收集参与计算的各基金在 [fromDate, toDate] 窗口内的跳变点 */
@@ -167,7 +167,7 @@ export function benchmarkCompare(holdings, histByCode, benchmark, benchmarkName 
     dates[dates.length - 1],
   )
   /* 区间跨越异常跳变：收益百分比一律置空，只留走势与跳变说明。
-     硬算会得到严重失真的数。 */
+     硬算会得到 +226% 这类失真数（001594 ）。 */
   const bad = untrusted.length > 0
   return {
     series,
@@ -287,7 +287,7 @@ export function portfolioTwr(holdings, histByCode = {}) {
 
     /* 起始日优先级：导入时间 → 导入时净值日期。
        ⚠️ 两者都没有就不算这只基金：退回净值历史起点会把「成立以来涨幅」
-       冒充成「持有以来 TWR」。 */
+       冒充成「持有以来 TWR」（ ：2010-08-20 起 +106.73%）。 */
     const since = (r.created_at || r.nav_date_at_import || '').slice(0, 10)
     if (!since) {
       missing++
@@ -302,7 +302,7 @@ export function portfolioTwr(holdings, histByCode = {}) {
     if (!(start.v > 0)) continue
 
     /* 起始→结束跨越异常跳变：这只不参与加权。
-       不拿跨口径的区间涨幅冒充持有收益。 */
+       不拿跨口径的区间涨幅冒充持有收益（001594  +226%）。 */
     const startIdx = acc.indexOf(start)
     if (detectJumps(acc.slice(startIdx)).length > 0) {
       skippedJump++

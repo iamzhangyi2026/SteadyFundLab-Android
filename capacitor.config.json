@@ -14,7 +14,7 @@
     },
     "CapacitorUpdater": {
       "autoUpdate": false,
-      "resetWhenUpdate": true,
+      "resetWhenUpdate": false,
       "allowModifyUrl": true,
       "statsUrl": ""
     }

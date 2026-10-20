@@ -100,7 +100,7 @@ export default function Detail({ code, from = 'watch' }) {
   const accLast = d && d.accWorth?.length ? d.accWorth[d.accWorth.length - 1].y : null
 
   /* 数据源异常跳变防护：区间收益 / 回撤 / 波动凡跨越跳变点一律降级。
-     不把「跨口径差值」当收益展示。 */
+     不把「跨口径差值」当收益展示（001594 ：近1年 +226%）。 */
   const jumps = d ? detectJumps(fullSeries) : []
   const jumpDateSet = new Set(jumps.map((j) => j.date))
   const rangeSafe = (accWorth, days) => {
@@ -481,7 +481,8 @@ function dateOffset(days) {
 function FeeBlock({ ratePct, nav }) {
   const [amount, setAmount] = useState(10000)
   /* 默认给「8 天前确认、今天赎回」—— 一打开就有个能看出结论的示例：
-     持有 8 天刚好越过 7 天惩罚线，费率从 1.5% 掉到 0.75%。 */
+     持有 8 天刚好越过 7 天惩罚线，费率从 1.5% 掉到 0.75%。
+     （原先写的是固定日期，日子久了会显得莫名其妙） */
   const [confirmDate, setConfirmDate] = useState(() => dateOffset(-8))
   const [redeemDate, setRedeemDate] = useState(() => dateOffset(0))
 

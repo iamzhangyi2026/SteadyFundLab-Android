@@ -24,6 +24,10 @@ export const PURCHASE_DISCOUNT = 0.125
  * 为什么不是 amount × rate：
  *   外扣法下 amount 是含费总额，费用包含在里面。
  *   内扣法会多算一点点，比例虽小但长期累积会影响回测精度。
+ *
+ * ⚠️ 参数口径：`rawRate` 必须是**原始费率**（接口 `fund_sourceRate`）。
+ *   若传入的已是折后费率（接口 `fund_Rate` / `d.rate`），必须显式传 `discount=1`，
+ *   否则会二次打折——当前调用方（Detail / simLedger）已用 `hasDiscounted` 守卫。
  */
 export function calcPurchase(amount, rawRate, discount = PURCHASE_DISCOUNT) {
   if (amount <= 0) return { fee: 0, netAmount: 0, rate: 0 }

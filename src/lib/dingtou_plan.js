@@ -329,15 +329,15 @@ export async function autoApplyDuePlans(now = new Date()) {
 
     p.auto_applied_periods = dueTotal
     p.last_auto_at = new Date().toISOString()
-    applied.push({ code: p.code, name: p.name, periods: due, amount })
+    applied.push({ id: p.id, code: p.code, name: p.name, periods: due, amount })
   }
 
   if (applied.length > 0) {
-    // 把已投期数写回计划（按 code 匹配，保留其它字段）
+    // 把已投期数写回计划（按 id 匹配，避免同一基金多个计划时写串；保留其它字段）
     const all = loadPlans()
     for (const a of applied) {
-      const src = list.find((x) => x.code === a.code)
-      const t = all.find((x) => x.code === a.code)
+      const src = list.find((x) => x.id === a.id)
+      const t = all.find((x) => x.id === a.id)
       if (t && src) {
         t.auto_applied_periods = src.auto_applied_periods
         t.last_auto_at = src.last_auto_at

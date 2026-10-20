@@ -8,10 +8,10 @@ import CompareTable from '../components/CompareTable.jsx'
 import { loadRealHoldings } from '../lib/realLedger.js'
 
 const POOL = [
-  { code: '040001', name: '华安创新混合' },
-  { code: '110010', name: '易方达价值成长混合' },
+  { code: '040001', name: '华夏成长' },
+  { code: '110010', name: '易方达价值成长' },
   { code: '000021', name: '华夏优势增长' },
-  { code: '100038', name: '富国沪深300指数增强A' },
+  { code: '100038', name: '富国低碳环保' },
   { code: '001594', name: '天弘中证银行' },
   { code: '519674', name: '银河创新成长' },
 ]

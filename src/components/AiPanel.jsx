@@ -65,10 +65,11 @@ export function LlmSettingsPanel() {
     <>
       <div className="section-title">AI 设置</div>
       <div className="card">
-        <p className="card-note" style={{ marginTop: 0 }}>
-          密钥由你自己填写，<b>只存这台手机</b>，不上传、不打进安装包。
-          兼容 OpenAI 的 /chat/completions 协议（OpenAI、DeepSeek、通义、Moonshot、自建网关等）。
-        </p>
+          <p className="card-note" style={{ marginTop: 0 }}>
+            密钥由你自己填写，<b>只存这台手机</b>，不上传、不打进安装包。
+            兼容 OpenAI 的 /chat/completions 协议（OpenAI、DeepSeek、通义、Moonshot、自建网关等）。
+            ⚠️ 不要在公用 / 共享设备上填写密钥。
+          </p>
 
         <label className="field">
           <span>Base URL（到 /v1 这一层）</span>
@@ -203,9 +204,10 @@ export function AiChatPanel({ context = null }) {
         ) : null}
 
         {msgs.length === 0 ? (
-          <p className="card-note" style={{ marginTop: 0 }}>
-            基于当前基金数据提问。模型只使用这里提供的数据，缺数据会直接说明，不编造。
-          </p>
+        <p className="card-note" style={{ marginTop: 0 }}>
+          基于当前基金数据提问。模型只使用这里提供的数据，缺数据会直接说明，不编造。
+          分析时会把当前基金/持仓数据发送到你配置的 AI 接口（不会发任何厂商后台）。
+        </p>
         ) : (
           <div className="ai-thread">
             {msgs.map((m, i) => (

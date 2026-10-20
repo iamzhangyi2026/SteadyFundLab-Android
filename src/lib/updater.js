@@ -178,12 +178,13 @@ export async function checkHotUpdate(manifestUrl, onProgress) {
   try {
     const bundle = await CapacitorUpdater.download({ url: info.url, version: info.version })
 
-    // 切换方式的选择：
+    // 切换方式的选择（记录， /  20 Pro / Android 16）：
     //   next() 官方推荐：标记为「下次启动生效」，不打断当前会话。
-    //          ⚠️ 但在部分机型上不生效 —— 调用后重启 App，插件日志仍显示
+    //          ⚠️ 但无效 —— 调用后重启 App，插件日志仍显示
     //          "Built-in bundle is active"，界面没有变化。
     //   set()  立即切换并重启 App。会销毁当前 JS 上下文，
     //          此调用之后的代码不会执行、Promise 不会 resolve。
+    //          有效。
     await CapacitorUpdater.set({ id: bundle.id })
   } finally {
     // set() 生效时下面这段不会执行到（JS 上下文已被销毁），无妨
@@ -201,7 +202,7 @@ export async function checkHotUpdate(manifestUrl, onProgress) {
 /* ------------------------------------------------------------------
    ⑤ 读「本机装的 APK」的 build（Android 上就是 versionCode）
    ------------------------------------------------------------
-   ⚠️ 为什么非得读它：硬编码的版本常量永远是死的，
+   ⚠️ 为什么非得读它：硬编码的版本常量永远是死的（本项目历史上用 APP_BUILD = 1），
       而 version.json 的 build 是手动递增的 —— 拿硬编码值比，「有新版本」永远为真，
       用户装完还会一直看到提示。
       只有拿真实的 versionCode 比，装完才会自动变成「已是最新」。
@@ -279,7 +280,7 @@ export async function checkRemoteVersion(versionUrl) {
   /* ⚠️ 必须跟**本机真实 versionCode** 比，不能跟硬编码常量比 ——
      那样 hasNew 永远为 true（version.json 的 build 是手动递增的 3/4/5…）。
      这里算一次、随结果一起返回，调用方直接用就行，别各自重算 ——
-     重算就会有人忘了这条规则。 */
+     重算就会有人忘了这条规则。（历史上正是这里埋过一次雷） */
   const installed = await installedBuild()
   // installed === 0 = 读不到（插件异常）→ 不声称有新版本，宁可漏报也别误导
   const hasNew = installed > 0 && remoteBuild > installed

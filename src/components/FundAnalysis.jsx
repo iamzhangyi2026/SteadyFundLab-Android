@@ -50,8 +50,8 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
   const [freq, setFreq] = useState('monthly')
   const [win, setWin] = useState('730')
 
-  /* 数据源异常跳变防护：含单日 ≥50% 跳变时，回撤/波动/定投回测全部失真，
-     一律留空并提示，不显示跨口径结果。 */
+  /* 数据源异常跳变防护：含单日 ≥50% 跳变时，回撤/波动/定投回测全部失真
+     （001594 ），一律留空并提示，不显示跨口径结果。 */
   const jumps = useMemo(() => detectJumps(series), [series])
   const suspect = jumps.length > 0
 

@@ -11,8 +11,8 @@ import { usePullRefresh } from '../lib/usePullRefresh.js'
 const WATCH_LIST = [
   { code: '040001', tag: '成长' },
   { code: '110010', tag: '价值' },
-  { code: '000021', tag: '混合' },
-  { code: '100038', tag: '指数' },
+  { code: '000021', tag: '优势' },
+  { code: '100038', tag: '低碳' },
 ]
 
 export default function Watch({ onOpen, onDiscover, onSimLedger }) {
@@ -22,9 +22,9 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
   usePullRefresh(() => setRefreshTrigger((k) => k + 1))
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  async function load() {
-    setState({ status: 'loading', items: [] })
-    const items = await Promise.all(
+  // 并发抓观察池：每只基金独立 fetchFund，成功带数据、失败带 error，互不影响
+  async function fetchWatchItems() {
+    return Promise.all(
       WATCH_LIST.map(async (w) => {
         try {
           return { ...w, d: await fetchFund(w.code), error: null }
@@ -33,20 +33,17 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
         }
       })
     )
+  }
+
+  async function load() {
+    setState({ status: 'loading', items: [] })
+    const items = await fetchWatchItems()
     setState({ status: 'ok', items })
   }
 
   useEffect(() => {
     let alive = true
-    Promise.all(
-      WATCH_LIST.map(async (w) => {
-        try {
-          return { ...w, d: await fetchFund(w.code), error: null }
-        } catch (e) {
-          return { ...w, d: null, error: e.message }
-        }
-      })
-    ).then((items) => alive && setState({ status: 'ok', items }))
+    fetchWatchItems().then((items) => alive && setState({ status: 'ok', items }))
     return () => { alive = false }
   }, [refreshTrigger])
 

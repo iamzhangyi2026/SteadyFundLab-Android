@@ -1,7 +1,7 @@
 // src/components/SettingsPanels.jsx · 「我的」页设置面板
 // ------------------------------------------------------------
 // ThemeRow   深色模式开关（C6）
-// AlertPanel 涨跌预警（C7）
+// AlertPanel 涨跌预警
 // IoPanel    导入 / 导出 CSV（C10）
 //
 // 全部沿用「我的」页现有 card / fund-row 版式，不新增页面。

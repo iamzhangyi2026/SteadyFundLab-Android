@@ -376,7 +376,8 @@
   );
 }
 /* 列表型卡片：里面装的是 .fund-row 列表，行自身已带上下留白，
-   所以卡片上下内边距压到 2px，只保留左右。 */
+   所以卡片上下内边距压到 2px，只保留左右。
+   （原先写成 3 处重复的 inline style，收敛成类） */
 .card-list { padding: 2px var(--space-4); }
 .card-note { font-size: var(--fs-kicker); color: var(--text-mute); }
 
@@ -573,7 +574,8 @@
 .callout.danger { background: var(--danger-soft); border-left-color: var(--danger); }
 .callout.teal { background: var(--teal-soft); border-left-color: var(--teal); }
 
-/* 带操作按钮的提示条：左文右钮。 */
+/* 带操作按钮的提示条：左文右钮。
+   原先写成 App.jsx 里的 inline style，两条提示重复了一遍 —— 收敛成类。 */
 .callout-row {
   margin-bottom: var(--space-3);
   display: flex;
@@ -959,7 +961,7 @@
 .insight-note + .insight-note { margin-top: 8px; }
 
 /* ============================================================
-   功能样式
+   新增功能样式
    ------------------------------------------------------------
    多基金对比 / 大盘指数 / 组合工具 / 决策纪律线。
    全部复用现有卡片与令牌，不引入新框架。
@@ -1166,7 +1168,7 @@
   background: rgba(255, 255, 255, 0.20);
 }
 /* ⚠️ 必须在 .switch 之后：否则 [data-theme] .switch 会压过 .switch.on，
-   开启态也显示成灰色。 */
+   开启态也显示成灰色（ 发现）。 */
 [data-theme='dark'] .switch.on {
   background: var(--accent);
 }

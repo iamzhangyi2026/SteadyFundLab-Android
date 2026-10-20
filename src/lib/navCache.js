@@ -51,7 +51,7 @@ export function loadNavCache(code) {
  * 写缓存（截断到 MAX_POINTS，并登记索引供 FIFO 淘汰）
  *
  * 顺序：**先尝试写**，写失败（配额满）才淘汰最旧的那批再重试一次。
- * 先写后淘汰：一旦写入失败，旧缓存还在，不会丢数据。
+ * 旧实现是先淘汰再写——一旦写入失败，旧缓存白删了，等于丢数据。
  */
 export function saveNavCache(code, series) {
   if (!code || !Array.isArray(series) || series.length === 0) return false

@@ -6,7 +6,9 @@
 //   3. 估值洼地    累计净值历史分位 < undervaluedPct
 //   4. 再平衡      实际占比与目标占比偏离 ≥ rebalanceDevPct 个百分点
 //
-// 四类预警共用一套规则存储（localStorage `alert_rules`），由「我的」页直接读写。
+// ⚠️  修正：此前「我的」页开关存 notify_prefs、本模块读 alert_rules，
+//    两套存储互不联通，且估值洼地只有开关没有检查逻辑（假开关）。
+//    现在统一到 alert_rules，由「我的」页直接读写。
 //
 // 通知策略：同一只基金、同一天、同一类型只提醒一次；每类汇总成一条通知，
 // 避免多只同时命中时刷屏。没通知权限时只返回命中结果，不发通知。
@@ -205,7 +207,7 @@ export function checkRebalanceAlerts(holdings, rules = loadAlertRules()) {
       target: r.target,
       diff: r.diff,
       action: r.action,
-      amount: r.amount,
+      amount: Math.abs(r.amount),
     }))
 }
 
