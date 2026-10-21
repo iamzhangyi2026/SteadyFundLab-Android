@@ -40,6 +40,35 @@ export function countSimHolding(code) {
   return loadSimHoldings().filter((r) => r.code === code).length
 }
 
+/**
+ * 删除一条买入记录（按 id）。
+ * 人控要求：用户必须能删自己的模拟记录，不能只进不出。
+ * @param {string} id addSimHolding 时写入的 id
+ * @returns {boolean} 删掉了返回 true；没这条记录返回 false
+ */
+export function removeSimHolding(id) {
+  if (!id) return false
+  const all = loadSimHoldings()
+  const next = all.filter((r) => r.id !== id)
+  if (next.length === all.length) return false
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 清空全部模拟记录（确认后调用，不可恢复） */
+export function clearSimHoldings() {
+  try {
+    localStorage.removeItem(KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** 按基金代码聚合一笔行：份额 / 投入 / 费用（持仓页展示用） */
 export function simHoldingByCode() {
   const map = new Map()

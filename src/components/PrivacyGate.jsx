@@ -1,21 +1,18 @@
-// src/components/PrivacyGate.jsx · 首屏隐私政策弹窗（第一道门）
+// src/components/PrivacyGate.jsx · 首屏隐私说明（首次安装弹一次）
 // ------------------------------------------------------------
-// 首次安装 / 卸载重装后出现，两个选项：
-//   「知道了」  → 记录已同意，进入第二道门（通知权限）
-//   「查看全文」→ 打开 Privacy 页
+// 本项目为开源项目，不做强制同意拦截：说明只弹一次，点「知道了」即进入。
 // 同意状态记在本机（lib/consent.js），不联网、不上传。
 
 import { useState } from 'react'
 import Privacy from '../views/Privacy.jsx'
 
 /**
- * 首屏隐私政策弹窗（第一道门）
+ * 首屏隐私说明（轻量，不阻断）
  * ------------------------------------------------------------
- * 首次安装 / 卸载重装后出现，两个选项：
- *   「知道了」  → 记录已同意，进入第二道门（通知权限）
- *   「忍心拒绝」→ 结束进程（与正常 App 拒绝隐私政策时的表现一致）
+ * 「知道了」→ 记录已读，进入 App（不再有「拒绝即退出」的强制门）。
+ * 「查看全文」→ 打开 Privacy 页。
  */
-export default function PrivacyGate({ onAgree, onDecline }) {
+export default function PrivacyGate({ onAgree }) {
   const [showFull, setShowFull] = useState(false)
 
   return (
@@ -35,13 +32,14 @@ export default function PrivacyGate({ onAgree, onDecline }) {
         ) : (
           <>
             <div className="gate-head">
-              <div className="gate-title">隐私政策</div>
-              <div className="gate-sub">请阅读并同意后继续使用</div>
+              <div className="gate-title">使用说明</div>
+              <div className="gate-sub">开源项目 · 数据只存在你的手机里</div>
             </div>
 
             <div className="gate-body">
               <p className="gate-p">
-                使用前请先阅读隐私政策，了解你的数据如何被处理。
+                本 App 不设账号、不上传任何数据、不做统计上报。持仓与自选只存本机。
+                只有你主动使用 AI 分析时，相关内容才会发送到你自行配置的 AI 接口。
               </p>
 
               <button className="gate-link" onClick={() => setShowFull(true)}>
@@ -52,9 +50,6 @@ export default function PrivacyGate({ onAgree, onDecline }) {
             <div className="gate-actions">
               <button className="btn btn-primary btn-block" onClick={onAgree}>
                 知道了
-              </button>
-              <button className="btn btn-block" onClick={onDecline}>
-                忍心拒绝
               </button>
             </div>
           </>

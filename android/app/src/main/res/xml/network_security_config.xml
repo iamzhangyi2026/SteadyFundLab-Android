@@ -9,11 +9,16 @@
   手机访问 http://localhost:8080 会被转发到电脑的 8080 端口。
 
   注意：XML 注释里不能出现连续两个减号，否则解析器直接报错。
+
+   新增 eid.csrc.gov.cn：证监会基金电子披露平台只提供 HTTP
+  （HTTPS 不通），公告数据要从这里取，故单独放开该域名的明文访问。
+  仅此一个业务域名，不是全局放开。
 -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">eid.csrc.gov.cn</domain>
     </domain-config>
 </network-security-config>

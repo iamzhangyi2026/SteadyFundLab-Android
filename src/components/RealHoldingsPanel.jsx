@@ -14,23 +14,32 @@
 //   - 今日估算收益：任一只算不出就整体显示「—」，不拿部分基金冒充全部
 
 import { useEffect, useMemo, useState } from 'react'
-import { loadRealHoldings, backfillNavBase, calcHolding, updateRealHolding, removeRealHolding } from '../lib/realLedger.js'
+import { loadRealHoldings, backfillNavBase, calcHolding, updateRealHolding, removeRealHolding, appendRealHolding } from '../lib/realLedger.js'
+import { QuickDingtouForm } from './QuickActions.jsx'
 import { fetchHoldingsLive } from '../lib/live.js'
 import { fromRealRow, decorate } from '../lib/holdingsModel.js'
 import { checkAllAlerts } from '../lib/alerts.js'
 import { notifyDueDingtou, autoApplyDuePlans } from '../lib/dingtou_plan.js'
 import PortfolioToolbelt from './PortfolioToolbelt.jsx'
 
-const fmt2 = (n) =>
-  n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+/* 非有限值一律显示「—」：null / NaN / Infinity 都不该渲染成
+   「NaN」「∞」这种吓人的东西 */
+const fmt2 = (n) => {
+  const v = Number(n)
+  if (!Number.isFinite(v)) return '—'
+  return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
 const pnlCls = (n) => (n == null || n === 0 ? 'flat' : n > 0 ? 'up' : 'down')
 const signed = (n, d = 2) => `${n > 0 ? '+' : ''}${n.toFixed(d)}`
 
 /* 刷新节奏：交易时段 3 分钟，其余 5 分钟（非交易时段净值不动，少发加密请求）。
    节假日没有日历数据，按工作日近似（假日多刷几次，无害）。 */
+/* ：持仓每 3-5 分钟抓一次、实时更新与实时估算。
+   交易/非交易统一取 3 分钟（区间内更实时的一端）；
+   每次刷新发 2 个请求（批量净值 + 指数行情），回前台再强制补刷一次。 */
 const TRADING_REFRESH_MS = 3 * 60 * 1000
-const IDLE_REFRESH_MS = 5 * 60 * 1000
+const IDLE_REFRESH_MS = 3 * 60 * 1000
 
 function isTradingTime(d = new Date()) {
   const day = d.getDay()
@@ -44,7 +53,7 @@ function isTradingTime(d = new Date()) {
  * @param {function} [onImport]   空态「去导入」；不传则不显示该按钮
  * @param {number}   [refreshKey] 变化即重新读取账本并抓行情
  * @param {boolean}  [showImportCta] 标题右侧「导入」文字按钮（持仓页自带大按钮，不需要）
- * @param {boolean}  [showTools] 是否在下方展开每日收益 / 基准对比 / 组合风险（仅持仓页传 true）
+ * @param {boolean}  [showTools] 是否在下方展开基准对比 / 组合风险（仅持仓页传 true）
  */
 export default function RealHoldingsPanel({
   onOpenFund,
@@ -57,15 +66,20 @@ export default function RealHoldingsPanel({
   /* 编辑 / 删除本机持仓：editingKey 记正在编辑的行 */
   const [editingKey, setEditingKey] = useState(null)
   const [editForm, setEditForm] = useState({ shares: '', amount: '', pct: '' })
+  /* 加仓（手动买入）：buyingKey 记正在加仓的行 */
+  const [buyingKey, setBuyingKey] = useState(null)
+  const [buyForm, setBuyForm] = useState({ shares: '', amount: '' })
+  /* 定投（快速建计划）：dingtouKey 记正在建定投的行 */
+  const [dingtouKey, setDingtouKey] = useState(null)
   const [internalKey, setInternalKey] = useState(0)
 
   /* 打开就刷一次，之后自动刷：
-       - 交易时段 3 分钟（盘中数值在变，值得勤刷）
-       - 非交易时段 5 分钟（净值和指数都不动，但用户可能就盯着看，保持一个不激进的节奏）
+       - 每 3 分钟一次（ 3-5 分钟实时刷新，交易与非交易统一 3 分钟）
        - 回到前台立刻补一次（后台时 WebView 的定时器会被系统挂起，回来必须重拉）
      一次刷新只发 2 个请求：批量净值 1 个 + 指数行情 1 个（基金→指数的映射有内存缓存）。 */
   useEffect(() => {
     let alive = true
+    let disposed = false
     let timer = null
     let removeApp = () => {}
 
@@ -114,7 +128,10 @@ export default function RealHoldingsPanel({
       clearInterval(timer)
       const ms = isTradingTime() ? TRADING_REFRESH_MS : IDLE_REFRESH_MS
       timer = setInterval(() => {
-        load(false, false)
+        /* 定时刷新必须 force=true 绕过缓存：
+           净值缓存 TTL 是 5 分钟，而定时器 3 分钟 —— 不绕过的话每轮都命中缓存，
+           实际变成 5 分钟才真抓一次，界面看着「不刷新」（ 抓到）。 */
+        load(false, true)
         // 跨进/跨出交易时段时换节奏
         if ((isTradingTime() ? TRADING_REFRESH_MS : IDLE_REFRESH_MS) !== ms) schedule()
       }, ms)
@@ -129,15 +146,25 @@ export default function RealHoldingsPanel({
       try {
         const { App } = await import('@capacitor/app')
         const h = await App.addListener('appStateChange', (s) => {
-          if (!s?.isActive) return
+          if (disposed || !alive || !s?.isActive) return
           load(false, true)
           schedule()
         })
-        removeApp = () => {
+        if (disposed) {
+          // 卸载发生在 import resolve 之后：立刻摘掉，否则监听永久残留
+          // （每次回前台都会多打一次网络请求）
           try {
             h.remove()
           } catch {
             // 忽略
+          }
+        } else {
+          removeApp = () => {
+            try {
+              h.remove()
+            } catch {
+              // 忽略
+            }
           }
         }
       } catch {
@@ -146,6 +173,7 @@ export default function RealHoldingsPanel({
     })()
 
     return () => {
+      disposed = true
       alive = false
       clearInterval(timer)
       removeApp()
@@ -184,6 +212,42 @@ export default function RealHoldingsPanel({
     updateRealHolding(r.code, r.name, editForm)
     setEditingKey(null)
     setInternalKey((k) => k + 1)
+  }
+
+  /* 手动加仓：份额与成本累加到账本（与定投自动追加同一个落地函数） */
+  function startBuy(r) {
+    setBuyForm({ shares: '', amount: '' })
+    setBuyingKey(r.code || r.name)
+    setEditingKey(null)
+  }
+
+  function saveBuy(r) {
+    const deltaShares = Number(buyForm.shares)
+    const amountCost = Number(buyForm.amount)
+    /* 必须同时挡住非有限值：输入框填 1e999 会变成 Infinity，
+       而 Infinity > 0 为真 —— 只判 >0 会放行，把「∞ 份 / ∞ 元」写进账本。 */
+    if (!Number.isFinite(deltaShares) || !(deltaShares > 0)) return
+    if (!Number.isFinite(amountCost) || !(amountCost > 0)) return
+    // 净值基准：优先实时估算净值，退回导入时净值；都没有就不让加（避免按 0 折算市值）
+    const nav = Number(r.live?.estNav ?? r.live?.nav ?? r.nav_at_import)
+    if (!(nav > 0)) {
+      window.alert('拿不到该基金的净值基准，暂不能加仓。请稍候重试或先下拉刷新。')
+      return
+    }
+    const ok = appendRealHolding({
+      code: r.code,
+      name: r.name,
+      deltaShares,
+      amountCost,
+      nav,
+      navDate: r.nav_date_at_import || '',
+    })
+    if (ok) {
+      setBuyingKey(null)
+      setInternalKey((k) => k + 1)
+    } else {
+      window.alert('加仓失败：该基金不在本机持仓里。')
+    }
   }
 
   function removeRow(r) {
@@ -278,7 +342,6 @@ export default function RealHoldingsPanel({
                         <strong>{r.name || r.code}</strong>
                         <small>
                           {r.code ? <span className="fund-code">{r.code}</span> : '无代码'}
-                          {r.shares != null ? ` · ${r.shares.toFixed(2)} 份` : ''}
                         </small>
                       </span>
                       <span className="rh-row-num">
@@ -296,6 +359,22 @@ export default function RealHoldingsPanel({
                         <b>{live?.estNav != null ? live.estNav.toFixed(4) : '—'}</b>
                       </span>
                       <span>
+                        <i>持有份额</i>
+                        <b>{r.shares != null ? r.shares.toFixed(2) : '—'}</b>
+                      </span>
+                      <span>
+                        <i>持有收益</i>
+                        <b className={pnlCls(c.pnl)}>
+                          {c.pnl == null ? '—' : signed(c.pnl)}
+                        </b>
+                      </span>
+                      <span>
+                        <i>持有收益率</i>
+                        <b className={pnlCls(c.pnlPct)}>
+                          {c.pnlPct == null ? '—' : `${signed(c.pnlPct)}%`}
+                        </b>
+                      </span>
+                      <span>
                         <i>涨跌幅</i>
                         <b className={pnlCls(live?.pct)}>
                           {live?.pct != null ? `${signed(live.pct)}%` : '—'}
@@ -304,11 +383,11 @@ export default function RealHoldingsPanel({
                       <span>
                         <i>估算收益</i>
                         <b className={pnlCls(c.estPnl)}>
-                          {c.estPnl != null ? signed(c.estPnl) : '—'}
+                          {c.estPnl == null ? '—' : signed(c.estPnl)}
                         </b>
                       </span>
                       <span>
-                        <i>更新</i>
+                        <i>更新时间</i>
                         <b>{live?.time || '—'}</b>
                       </span>
                     </span>
@@ -318,10 +397,60 @@ export default function RealHoldingsPanel({
                       <button className="btn btn-sm" onClick={() => startEdit(r)}>
                         编辑
                       </button>
+                      <button className="btn btn-sm" onClick={() => startBuy(r)}>
+                        加仓
+                      </button>
+                      <button className="btn btn-sm" onClick={() => { setBuyingKey(null); setEditingKey(null); setDingtouKey(r.code || r.name) }}>
+                        定投
+                      </button>
                       <button className="btn btn-sm" onClick={() => removeRow(r)}>
                         删除
                       </button>
                     </div>
+
+                    {dingtouKey === (r.code || r.name) ? (
+                      <QuickDingtouForm
+                        code={r.code}
+                        name={r.name}
+                        onSaved={() => setDingtouKey(null)}
+                      />
+                    ) : null}
+
+                    {buyingKey === (r.code || r.name) ? (
+                      <div className="rh-edit">
+                        <label className="field">
+                          <span>新增份额</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={buyForm.shares}
+                            onChange={(e) => setBuyForm((f) => ({ ...f, shares: e.target.value }))}
+                            placeholder="如 500"
+                          />
+                        </label>
+                        <label className="field">
+                          <span>本次投入（元）</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={buyForm.amount}
+                            onChange={(e) => setBuyForm((f) => ({ ...f, amount: e.target.value }))}
+                            placeholder="如 8000"
+                          />
+                        </label>
+                        <div className="goal-form-actions">
+                          <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => saveBuy(r)}>
+                            确认加仓
+                          </button>
+                          <button className="btn" onClick={() => setBuyingKey(null)}>
+                            取消
+                          </button>
+                        </div>
+                        <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
+                          按当前净值基准折算市值：份额 += 新增份额，成本 += 本次投入。只改本机账本。
+                        </p>
+                      </div>
+                    ) : null}
 
                     {editingKey === key ? (
                       <div className="rh-edit">

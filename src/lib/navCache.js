@@ -53,14 +53,19 @@ export function loadNavCache(code) {
  * 顺序：**先尝试写**，写失败（配额满）才淘汰最旧的那批再重试一次。
  * 旧实现是先淘汰再写——一旦写入失败，旧缓存白删了，等于丢数据。
  */
-export function saveNavCache(code, series) {
+export function saveNavCache(code, series, { source = 'net' } = {}) {
   if (!code || !Array.isArray(series) || series.length === 0) return false
   const idx = readIndex()
   idx[code] = Date.now()
 
+  // 种子快照记 at:0 —— 它只是发版当天的快照，不能当成「刚刚抓过」。
+  // 否则预抓取会因「24h 内抓过」把种子覆盖的基金全部跳过（首日队列为空、
+  // 功能形同虚设），分位/回撤/算法推荐也会一直沿用发版当天的旧数据。
+  const at = source === 'seed' ? 0 : Date.now()
   const trimmed = series.slice(-MAX_POINTS)
   const payload = JSON.stringify({
-    at: Date.now(),
+    at,
+    source,
     last_date: trimmed[trimmed.length - 1]?.date || '',
     series: trimmed,
   })

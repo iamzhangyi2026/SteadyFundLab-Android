@@ -1,51 +1,122 @@
 /**
- * 自选观察首页：上半屏是用户自己的真实持仓（导入所得），下半屏是观察池行情。
- * 关注列表仍是产品内置观察样本，不能当作用户真实持仓。
+ * 自选观察页。
+ *
+ *  ：
+ *   1. 自选也要能添加 / 删除（原来是写死的 4 只常量）
+ *   2. 把「算法添加」与「人工添加」分开标注
+ *   3. 每行补上 编辑 / 加仓 / 定投 / 删除 按钮
+ *
+ * 数据源：lib/watchlist.js（localStorage，source 字段区分 algo / manual）
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchFund, latestNetWorth, dayChange, fmtNavDate } from '../lib/eastmoney.js'
+import { seedFund } from '../lib/seed.js'
 import RowSkeleton from '../components/RowSkeleton.jsx'
 import { usePullRefresh } from '../lib/usePullRefresh.js'
-
-const WATCH_LIST = [
-  { code: '040001', tag: '成长' },
-  { code: '110010', tag: '价值' },
-  { code: '000021', tag: '优势' },
-  { code: '100038', tag: '低碳' },
-]
+import { loadWatch, addWatch, removeWatch, updateWatch, recomputeAlgo, needsAlgoCompute } from '../lib/watchlist.js'
+import { QuickBuyForm, QuickDingtouForm } from '../components/QuickActions.jsx'
 
 export default function Watch({ onOpen, onDiscover, onSimLedger }) {
-  const [state, setState] = useState({ status: 'loading', items: [] })
+  /* 自选列表（含 source：algo 算法添加 / manual 人工添加） */
+  const [watch, setWatch] = useState(() => loadWatch())
+  /* 首屏：自选池都有内置种子，直接出数（秒开），后台再刷新 */
+  const [state, setState] = useState(() => {
+    const items = loadWatch()
+      .map((w) => {
+        const d = seedFund(w.code)
+        return d ? { ...w, d, error: null } : null
+      })
+      .filter(Boolean)
+    return items.length ? { status: 'ok', items } : { status: 'loading', items: [] }
+  })
 
-  // 下拉刷新（手势在 App 根，事件分发给当前页面）
-  usePullRefresh(() => setRefreshTrigger((k) => k + 1))
+  /* 下拉刷新（手势在 App 根，事件分发给当前页面）
+     ⚠️ state 必须先声明再传给 usePullRefresh：回调里引用的绑定要在挂上之前
+        初始化，否则依赖初始化顺序，属于 TDZ 隐患。 */
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  usePullRefresh(() => setRefreshTrigger((k) => k + 1))
+
+  /* 行内展开状态：editing / buying / dingtou 各记一个 code */
+  const [editingCode, setEditingCode] = useState(null)
+  const [editTag, setEditTag] = useState('')
+  const [buyingCode, setBuyingCode] = useState(null)
+  const [dingtouCode, setDingtouCode] = useState(null)
+
+  /* 算法自选：重算状态与错误 */
+  const [algoBusy, setAlgoBusy] = useState(false)
+  const [algoError, setAlgoError] = useState(false)
+  const mountedRef = useRef(true)
+
+  /* 添加自选 */
+  const [adding, setAdding] = useState(false)
+  const [newCode, setNewCode] = useState('')
+  const [newTag, setNewTag] = useState('')
+  const [addMsg, setAddMsg] = useState(null)
+  const [addBusy, setAddBusy] = useState(false)
 
   // 并发抓观察池：每只基金独立 fetchFund，成功带数据、失败带 error，互不影响
-  async function fetchWatchItems() {
+  async function fetchWatchItems(list) {
     return Promise.all(
-      WATCH_LIST.map(async (w) => {
+      list.map(async (w) => {
         try {
           return { ...w, d: await fetchFund(w.code), error: null }
         } catch (e) {
           return { ...w, d: null, error: e.message }
         }
-      })
+      }),
     )
   }
 
   async function load() {
-    setState({ status: 'loading', items: [] })
-    const items = await fetchWatchItems()
+    const list = loadWatch()
+    setWatch(list)
+    /* 已有数据（种子或上次抓取）时不闪骨架，直接静默替换 */
+    setState((prev) => (prev.items.length ? prev : { status: 'loading', items: [] }))
+    const items = await fetchWatchItems(list)
+    // 抓数要几秒，期间用户可能已退出页面 —— 卸载后不再 setState
+    if (!mountedRef.current) return
     setState({ status: 'ok', items })
   }
 
   useEffect(() => {
     let alive = true
-    fetchWatchItems().then((items) => alive && setState({ status: 'ok', items }))
-    return () => { alive = false }
+    const list = loadWatch()
+    setWatch(list)
+    fetchWatchItems(list).then((items) => alive && setState({ status: 'ok', items }))
+    return () => {
+      alive = false
+    }
   }, [refreshTrigger])
+
+  /**
+   * 跑算法重算自选：保留人工条目、整体替换算法条目。
+   * 计算失败（离线）时返回 null，不破坏已有算法条目，并置 algoError。
+   */
+  async function refreshAlgo() {
+    if (algoBusy) return
+    setAlgoBusy(true)
+    setAlgoError(false)
+    const next = await recomputeAlgo()
+    if (!mountedRef.current) return
+    setAlgoBusy(false)
+    if (next === null) {
+      setAlgoError(true)
+      load()
+      return
+    }
+    setWatch(next)
+    load()
+  }
+
+  // 首启无算法列表，或检测到旧版写死样本（无 score）：自动跑一次算法生成
+  useEffect(() => {
+    mountedRef.current = true
+    if (needsAlgoCompute(loadWatch())) refreshAlgo()
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const summary = useMemo(() => {
     const valid = state.items.filter((item) => item.d)
@@ -56,6 +127,58 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
 
   const date = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric' }).format(new Date())
 
+  /* 添加：先抓名称，抓不到也允许只存代码 */
+  async function submitAdd() {
+    const code = newCode.trim()
+    if (!/^\d{6}$/.test(code)) {
+      setAddMsg({ ok: false, text: '请输入 6 位基金代码' })
+      return
+    }
+    setAddBusy(true)
+    setAddMsg(null)
+    let name = ''
+    try {
+      const d = await fetchFund(code)
+      name = d?.name || ''
+    } catch {
+      // 抓不到名称不阻塞：代码先入库，列表刷新时会再取
+    }
+    const r = addWatch({ code, name, tag: newTag.trim(), source: 'manual' })
+    setAddBusy(false)
+    if (r.ok) {
+      setAddMsg({ ok: true, text: `已加入自选：${name || code}` })
+      setNewCode('')
+      setNewTag('')
+      load()
+    } else if (r.reason === 'exists') {
+      setAddMsg({ ok: false, text: '这只基金已经在自选里了' })
+    } else {
+      setAddMsg({ ok: false, text: '添加失败：本机存储不可用' })
+    }
+  }
+
+  function del(code, name) {
+    if (!window.confirm(`把「${name || code}」从自选移除？\n只删观察列表，不影响持仓。`)) return
+    removeWatch(code)
+    if (editingCode === code) setEditingCode(null)
+    if (buyingCode === code) setBuyingCode(null)
+    if (dingtouCode === code) setDingtouCode(null)
+    load()
+  }
+
+  function startEdit(w) {
+    setEditingCode(w.code)
+    setEditTag(w.tag || '')
+    setBuyingCode(null)
+    setDingtouCode(null)
+  }
+
+  function saveEdit(code) {
+    updateWatch(code, { tag: editTag.trim() })
+    setEditingCode(null)
+    load()
+  }
+
   return (
     <div className="watch-page">
       <section className="watch-welcome">
@@ -64,12 +187,11 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
         <p>净值、费率与持仓线索，一屏看清。</p>
       </section>
 
-      {/* 真实持仓只放在「持仓」页 —— 自选页专注观察池，不重复展示自己的钱 */}
       <section className="market-card" aria-label="自选行情摘要">
         <div className="market-topline">
           <div><div className="market-kicker">自选行情</div><div className="market-title">今日观察</div></div>
           <span className={`market-status ${state.status === 'loading' ? 'is-loading' : ''}`}>
-            <i />{state.status === 'loading' ? '正在更新' : summary.valid ? `已获取 ${summary.valid}/${WATCH_LIST.length} 只` : '数据暂不可用'}
+            <i />{state.status === 'loading' ? '正在更新' : summary.valid ? `已获取 ${summary.valid}/${watch.length} 只` : '数据暂不可用'}
           </span>
         </div>
         <div className="market-bottomline">
@@ -84,15 +206,97 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
 
       <div className="watch-section-head">
         <div><span className="section-overline">YOUR WATCHLIST</span><h2>关注列表</h2></div>
-        <button className="text-action" onClick={load} disabled={state.status === 'loading'}>↻ 更新</button>
+        <div className="watch-head-actions">
+          <button className="text-action" onClick={() => { setAdding((v) => !v); setAddMsg(null) }}>
+            {adding ? '收起' : '＋ 添加'}
+          </button>
+          <button className="text-action" onClick={refreshAlgo} disabled={algoBusy}>{algoBusy ? '算法重算中…' : '↻ 重算'}</button>
+        </div>
       </div>
 
+      {adding ? (
+        <div className="card" style={{ marginBottom: 'var(--space-3)' }}>
+          <div className="field-row">
+            <label className="field">
+              <span>基金代码（6 位）</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="如 040001"
+              />
+            </label>
+            <label className="field">
+              <span>标签（可空，如「红利」）</span>
+              <input
+                type="text"
+                maxLength={8}
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="自定"
+              />
+            </label>
+          </div>
+          <button className="btn btn-primary btn-block" disabled={addBusy} onClick={submitAdd}>
+            {addBusy ? '正在获取基金信息…' : '加入自选'}
+          </button>
+          {addMsg ? (
+            <div className={'callout ' + (addMsg.ok ? 'teal' : 'danger')} style={{ marginTop: 8 }}>
+              {addMsg.text}
+            </div>
+          ) : null}
+          <p className="card-note" style={{ marginTop: 8 }}>
+            手动添加的标「人工」、可随意增删；「算法」列表由全市场三轨筛选动态生成（点「重算」刷新），自动维护、不写死。
+          </p>
+        </div>
+      ) : null}
+
       <section className="watch-list-card">
-        {state.status === 'loading'
-          ? WATCH_LIST.map((w) => <RowSkeleton key={w.code} />)
-          : state.items.map((item) => <FundRow key={item.code} item={item} onClick={() => item.d && onOpen(item.code)} />)}
+        {state.status === 'loading' ? (
+          watch.length === 0 ? (
+            <div className="empty">
+              <div className="empty-title">{algoBusy ? '算法分析全市场中…' : algoError ? '算法分析暂不可用' : '正在加载'}</div>
+              <div className="empty-note">
+                {algoBusy
+                  ? '按「近1年>0、分位<50%、回撤<50%」三轨筛选，达标的基金会自动列出'
+                  : algoError
+                    ? '请检查网络后点右上角「重算」重试'
+                    : '请稍候'}
+              </div>
+            </div>
+          ) : (
+            watch.map((w) => <RowSkeleton key={w.code} />)
+          )
+        ) : state.items.length === 0 ? (
+          <div className="empty">
+            <div className="empty-title">自选是空的</div>
+            <div className="empty-note">点右上角「＋ 添加」，输入基金代码就能加入观察</div>
+          </div>
+        ) : (
+          state.items.map((item) => (
+            <WatchRow
+              key={item.code}
+              item={item}
+              onOpen={() => item.d && onOpen(item.code)}
+              editing={editingCode === item.code}
+              editTag={editTag}
+              setEditTag={setEditTag}
+              buying={buyingCode === item.code}
+              dingtou={dingtouCode === item.code}
+              onStartEdit={() => startEdit(item)}
+              onSaveEdit={() => saveEdit(item.code)}
+              onCancelEdit={() => setEditingCode(null)}
+              onStartBuy={() => { setBuyingCode(item.code); setDingtouCode(null); setEditingCode(null) }}
+              onStartDingtou={() => { setDingtouCode(item.code); setBuyingCode(null); setEditingCode(null) }}
+              onDelete={() => del(item.code, item.d?.name)}
+              onSaved={() => { setBuyingCode(null); setDingtouCode(null); load() }}
+            />
+          ))
+        )}
       </section>
-      {state.status === 'ok' && summary.valid < WATCH_LIST.length && (
+      {state.status === 'ok' && summary.valid < watch.length && (
         <div className="data-note"><span>!</span>部分基金暂未获取到数据；缺失值保持空白，不做推测。</div>
       )}
 
@@ -114,22 +318,84 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
   )
 }
 
-function FundRow({ item, onClick }) {
-  const { d, error, tag, code } = item
-  if (error || !d) {
-    return <div className="watch-fund-row unavailable"><div className="fund-avatar">{tag.slice(0, 1)}</div><div className="watch-fund-main"><strong>基金 {code}</strong><small>{error || '暂无数据'}</small></div><span className="fund-unavailable">暂不可用</span></div>
-  }
-  const last = latestNetWorth(d.netWorth)
-  const chg = dayChange(d.netWorth)
+/**
+ * 自选行：主区点击进详情；下方一行是来源徽章 + 编辑/加仓/定投/删除。
+ * 操作按钮与主区分离（button 不能嵌套 button），点操作不会误触进详情。
+ */
+function WatchRow({
+  item, onOpen, editing, editTag, setEditTag, buying, dingtou,
+  onStartEdit, onSaveEdit, onCancelEdit, onStartBuy, onStartDingtou, onDelete, onSaved,
+}) {
+  const { d, error, tag, code, source } = item
+  const last = d ? latestNetWorth(d.netWorth) : null
+  const chg = d ? dayChange(d.netWorth) : null
   const cls = chg == null || chg === 0 ? 'flat' : chg > 0 ? 'up' : 'down'
   const sign = chg > 0 ? '+' : ''
   const dateLabel = last ? fmtNavDate(last.x, 'short') : '日期未知'
+  const srcLabel = source === 'algo' ? '算法' : '人工'
+
   return (
-    <button className="watch-fund-row" onClick={onClick}>
-      <span className={`fund-avatar avatar-${tag}`}>{tag.slice(0, 1)}</span>
-      <span className="watch-fund-main"><strong>{d.name}</strong><small><span className="fund-code">{d.code}</span><i />{tag}<i />净值 {dateLabel}</small></span>
-      <span className="watch-fund-numbers"><strong>{last ? last.y.toFixed(4) : '—'}</strong><small className={cls}>{chg == null ? '涨跌 —' : `${sign}${chg.toFixed(2)}%`}</small></span>
-      <span className="row-chevron">›</span>
-    </button>
+    <div className="watch-row-wrap">
+      <div className="watch-row-mainline">
+        {error || !d ? (
+          <div className="watch-fund-row unavailable">
+            <div className="fund-avatar">{(tag || code || '?').slice(0, 1)}</div>
+            <div className="watch-fund-main">
+              <strong>基金 {code}</strong>
+              <small>{error || '暂无数据'}</small>
+            </div>
+            <span className="fund-unavailable">暂不可用</span>
+          </div>
+        ) : (
+          <button className="watch-fund-row" onClick={onOpen}>
+            <span className={`fund-avatar avatar-${tag || 'default'}`}>{(tag || d.name || '?').slice(0, 1)}</span>
+            <span className="watch-fund-main">
+              <strong>{d.name}</strong>
+              <small>
+                <span className="fund-code">{d.code}</span><i />{tag || '未分类'}<i />净值 {dateLabel}
+              </small>
+            </span>
+            <span className="watch-fund-numbers">
+              <strong>{last ? last.y.toFixed(4) : '—'}</strong>
+              <small className={cls}>{chg == null ? '涨跌 —' : `${sign}${chg.toFixed(2)}%`}</small>
+            </span>
+            <span className="row-chevron">›</span>
+          </button>
+        )}
+      </div>
+
+      <div className="watch-row-ops">
+        <span className={`src-badge ${source === 'algo' ? 'algo' : 'manual'}`} title={source === 'algo' ? '算法动态生成（全市场三轨筛选达标）' : '你自己添加的'}>
+          {srcLabel}
+        </span>
+        <button className="btn btn-sm" onClick={onStartEdit}>编辑</button>
+        <button className="btn btn-sm" onClick={onStartBuy}>加仓</button>
+        <button className="btn btn-sm" onClick={onStartDingtou}>定投</button>
+        {source === 'manual' ? (
+          <button className="btn btn-sm" onClick={onDelete}>删除</button>
+        ) : (
+          <button className="btn btn-sm" disabled title="算法自动维护，点「更新」重算">删除</button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="rh-edit quick-form">
+          <label className="field">
+            <span>标签（显示在行内，最多 8 字）</span>
+            <input type="text" maxLength={8} value={editTag} onChange={(e) => setEditTag(e.target.value)} placeholder="如 红利 / 港股" />
+          </label>
+          <div className="goal-form-actions">
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={onSaveEdit}>保存</button>
+            <button className="btn" onClick={onCancelEdit}>取消</button>
+          </div>
+        </div>
+      ) : null}
+
+      {buying ? (
+        <QuickBuyForm code={code} name={d?.name || item.name} nav={last?.y} navDate={last ? fmtNavDate(last.x) : ''} onSaved={onSaved} />
+      ) : null}
+
+      {dingtou ? <QuickDingtouForm code={code} name={d?.name || item.name} onSaved={onSaved} /> : null}
+    </div>
   )
 }

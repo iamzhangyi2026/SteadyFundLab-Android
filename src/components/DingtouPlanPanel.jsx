@@ -97,7 +97,7 @@ export default function DingtouPlanPanel() {
         <div className="fund-row fund-row-static fund-row-noline">
           <div className="fund-main">
             <div className="fund-name fund-name-normal">到期自动追加到持仓</div>
-            <div className="fund-meta">打开 App 时把已到期未投的期数按最新净值折算份额，写进本机持仓</div>
+            <div className="fund-meta">默认关闭。打开后，进 App 时把已到期未投的期数按最新净值折算份额写进本机持仓</div>
           </div>
           <button
             className={auto.enabled ? 'switch on' : 'switch'}

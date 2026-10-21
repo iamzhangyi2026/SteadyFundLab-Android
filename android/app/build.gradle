@@ -7,14 +7,9 @@ android {
         applicationId "com.fundapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // ⚠️ versionCode 必须跟 updates/version.json 里的 build 是同一个号。
-        //    App 里判断「安装包有没有新版本」靠的是
-        //    「远端 build > 本机 versionCode」
-        //    （本机值读的是 App.getInfo().build，见 src/lib/updater.js 的 installedBuild）。
-        //    这里不跟着涨的话，用户装完 APK 还会一直看到「有新版本」。
-        //    发新 APK 时：这里 +1，再跑 tools/release-apk.py（它也会 +1），两边对齐。
-        versionCode 29
-        versionName "2.3"
+        // versionCode 每次发版递增；versionName 为对外版本号。
+        versionCode 30
+        versionName "2.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

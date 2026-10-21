@@ -8,13 +8,21 @@ import { useEffect, useState } from 'react'
 import { loadFundNews } from '../lib/fundNews.js'
 import { buildEvents } from '../lib/intel.js'
 
+/* 公告与新闻的链接都来自远端，直接塞进 href 会放行 javascript: 之类伪协议，
+   这里统一做协议白名单，不合规的一律当纯文本渲染。 */
+const SAFE_URL = /^https?:\/\//i
+const safeUrl = (u) => {
+  const s = String(u ?? '').trim()
+  return SAFE_URL.test(s) ? s : undefined
+}
+
 export default function FundNewsCard({ code, name }) {
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
 
   useEffect(() => {
     let alive = true
     setState({ status: 'loading', data: null, error: null })
-    loadFundNews(code)
+    loadFundNews(code, { name })
       .then((r) => {
         if (!alive) return
         if (r.data) setState({ status: 'ok', data: r.data, error: null, cached: r.fromCache })
@@ -24,7 +32,7 @@ export default function FundNewsCard({ code, name }) {
     return () => {
       alive = false
     }
-  }, [code])
+  }, [code, name])
 
   const { announcements = [], stockNews = [] } = state.data || {}
   const events = buildEvents(announcements)
@@ -57,7 +65,18 @@ export default function FundNewsCard({ code, name }) {
         <>
           {announcements.length > 0 && (
             <>
-              <div className="news-group-title">基金公告</div>
+              <div className="news-group-title">基金公告 · 公司官网 / 证监会披露</div>
+              {state.data?.company ? (
+                <p className="card-note" style={{ margin: '0 0 8px', lineHeight: 1.6 }}>
+                  来源：{state.data.company}
+                  {state.data.companySupported
+                    ? state.data.companyMatched
+                      ? '官网 + '
+                      : '官网（近期公告里没有本基金条目）+ '
+                    : '（官网源未接入）+ '}
+                  证监会基金电子披露平台
+                </p>
+              ) : null}
               {eventTypes.length > 0 ? (
                 <div className="chip-row" style={{ margin: '0 0 8px' }}>
                   {eventTypes.map(([t, n]) => (
@@ -68,19 +87,28 @@ export default function FundNewsCard({ code, name }) {
                 </div>
               ) : null}
               <div className="card plain card-list">
-                {events.rows.map((a, i) => (
-                  <div className="news-row" key={`a${i}`}>
-                    <span className="news-row-main">
-                      <strong>{a.title}</strong>
-                      <small>
-                        {a.eventType !== '其他' ? (
-                          <span className={'news-tag ' + (a.tone || '')}>{a.eventType}</span>
-                        ) : null}
-                        {a.date}
-                      </small>
-                    </span>
-                  </div>
-                ))}
+                {events.rows.map((a, i) => {
+                  const link = safeUrl(a.url)
+                  const RowTag = link ? 'a' : 'div'
+                  return (
+                    <RowTag
+                      className="news-row"
+                      key={`a${i}`}
+                      {...(link ? { href: link, target: '_blank', rel: 'noreferrer' } : {})}
+                    >
+                      <span className="news-row-main">
+                        <strong>{a.title}</strong>
+                        <small>
+                          {a.eventType !== '其他' ? (
+                            <span className={'news-tag ' + (a.tone || '')}>{a.eventType}</span>
+                          ) : null}
+                          {a.date}
+                        </small>
+                      </span>
+                      {link ? <span className="row-chevron">›</span> : null}
+                    </RowTag>
+                  )
+                })}
               </div>
             </>
           )}
@@ -93,7 +121,7 @@ export default function FundNewsCard({ code, name }) {
                   <a
                     className="news-row"
                     key={`n${i}`}
-                    href={n.url || undefined}
+                    href={safeUrl(n.url)}
                     target="_blank"
                     rel="noreferrer"
                   >
