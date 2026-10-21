@@ -13,10 +13,19 @@
 
 import { useEffect, useState } from 'react'
 import { fetchFund, latestNetWorth, dayChange } from '../lib/eastmoney.js'
+import { seedFund } from '../lib/seed.js'
 import { drawdownRecovery } from '../lib/navlab.js'
 import RowSkeleton from '../components/RowSkeleton.jsx'
 
 const CANDIDATES = ['040001', '110010', '000021', '100038', '001594', '519674']
+
+/* 首屏数据：优先用内置种子（秒开），拿不到才显示骨架等网络 */
+function seedItems() {
+  return CANDIDATES.map((code) => {
+    const d = seedFund(code)
+    return d ? { code, d, error: null } : null
+  }).filter(Boolean)
+}
 
 /* 分位与趋势都用**累计净值**：单位净值会因分红跳空，
    一次分红就被误读成一次下跌，分位和趋势随之失真 */
@@ -56,7 +65,12 @@ function toSeries(accWorth) {
 }
 
 export default function Discover({ onOpen, onNavigate }) {
-  const [state, setState] = useState({ status: 'loading', items: [] })
+  const [state, setState] = useState(() => {
+    const items = seedItems()
+    return items.length
+      ? { status: 'ok', items, fromSeed: true }
+      : { status: 'loading', items: [] }
+  })
 
   useEffect(() => {
     let alive = true
@@ -69,7 +83,13 @@ export default function Discover({ onOpen, onNavigate }) {
           return { code, d: null, error: e.message }
         }
       })
-    ).then((items) => alive && setState({ status: 'ok', items }))
+    ).then((items) => {
+      if (!alive) return
+      /* 网络全失败时保留种子快照，不要把已经看到的列表清空 */
+      const ok = items.filter((it) => it.d)
+      if (ok.length === 0 && seedItems().length > 0) return
+      setState({ status: 'ok', items: ok.length ? ok : items, fromSeed: false })
+    })
     return () => {
       alive = false
     }
@@ -125,6 +145,12 @@ export default function Discover({ onOpen, onNavigate }) {
       </div>
 
       <div className="section-title">候选池 · 按分位排序</div>
+
+      {state.fromSeed ? (
+        <p className="card-note" style={{ margin: '0 0 8px' }}>
+          首屏为内置快照（{state.items[0]?.d?.netWorth?.length || 0} 日序列），正在后台更新最新净值…
+        </p>
+      ) : null}
 
       {state.status === 'loading' ? (
         <div className="card plain card-list">

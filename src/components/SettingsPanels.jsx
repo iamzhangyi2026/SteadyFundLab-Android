@@ -10,6 +10,23 @@ import { useRef, useState } from 'react'
 import { loadThemeMode, applyThemeMode } from '../lib/theme.js'
 import { loadAlertRules, saveAlertRules, checkAllAlerts } from '../lib/alerts.js'
 import { realHoldingsCsv, simHoldingsCsv, downloadText, importRealHoldingsCsv } from '../lib/io.js'
+import {
+  loadPrefetchPrefs,
+  savePrefetchPrefs,
+  lastPrefetch,
+  runPrefetch,
+} from '../lib/prefetch.js'
+
+/* 阈值兜底：输入框被清空时 Number('') === 0，
+   会让「涨跌 ≥0%」这类规则命中全部基金、不停弹预警。
+   这里把非法值夹回区间，空值退回该字段的默认值。 */
+function clampPct(v, fallback, min, max) {
+  const s = String(v ?? '').trim()
+  if (s === '') return fallback
+  const n = Number(s)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, n))
+}
 
 /* ---------------- 深色模式 ---------------- */
 export function ThemeRow() {
@@ -99,7 +116,7 @@ export function AlertPanel({ holdings = [] }) {
               type="number"
               inputMode="decimal"
               value={rules.movePct}
-              onChange={(e) => patch({ movePct: Number(e.target.value) })}
+              onChange={(e) => patch({ movePct: clampPct(e.target.value, 3, 0.01, 100) })}
             />
           </label>
         ) : null}
@@ -145,7 +162,7 @@ export function AlertPanel({ holdings = [] }) {
               type="number"
               inputMode="decimal"
               value={rules.undervaluedPct}
-              onChange={(e) => patch({ undervaluedPct: Number(e.target.value) })}
+              onChange={(e) => patch({ undervaluedPct: clampPct(e.target.value, 30, 0.01, 100) })}
             />
           </label>
         ) : null}
@@ -169,7 +186,7 @@ export function AlertPanel({ holdings = [] }) {
               type="number"
               inputMode="decimal"
               value={rules.rebalanceDevPct}
-              onChange={(e) => patch({ rebalanceDevPct: Number(e.target.value) })}
+              onChange={(e) => patch({ rebalanceDevPct: clampPct(e.target.value, 10, 0.1, 50) })}
             />
           </label>
         ) : null}
@@ -203,14 +220,20 @@ export function IoPanel({ onImported }) {
   const fileRef = useRef(null)
   const [msg, setMsg] = useState(null)
 
-  function exportReal() {
-    const ok = downloadText(`真实持仓-${dateStamp()}.csv`, realHoldingsCsv())
-    setMsg({ ok, text: ok ? '真实持仓 CSV 已生成，请在下载目录查看。' : '导出失败：当前环境不支持下载。' })
+  async function exportReal() {
+    const r = await downloadText(`真实持仓-${dateStamp()}.csv`, realHoldingsCsv())
+    setMsg({
+      ok: r.ok,
+      text: r.ok ? '已生成 CSV，在分享面板里选择保存或发送方式。' : '导出失败：' + (r.error || '当前环境不支持'),
+    })
   }
 
-  function exportSim() {
-    const ok = downloadText(`模拟持仓-${dateStamp()}.csv`, simHoldingsCsv())
-    setMsg({ ok, text: ok ? '模拟持仓 CSV 已生成，请在下载目录查看。' : '导出失败：当前环境不支持下载。' })
+  async function exportSim() {
+    const r = await downloadText(`模拟持仓-${dateStamp()}.csv`, simHoldingsCsv())
+    setMsg({
+      ok: r.ok,
+      text: r.ok ? '已生成 CSV，在分享面板里选择保存或发送方式。' : '导出失败：' + (r.error || '当前环境不支持'),
+    })
   }
 
   async function onFile(e) {
@@ -288,4 +311,148 @@ function dateStamp() {
   const d = new Date()
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`
+}
+
+/* ---------------- 数据预抓取（M1 后台分层抓） ---------------- */
+export function PrefetchPanel() {
+  const [prefs, setPrefs] = useState(loadPrefetchPrefs)
+  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const [last, setLast] = useState(lastPrefetch)
+
+  function toggle(key) {
+    setPrefs(savePrefetchPrefs({ [key]: !prefs[key] }))
+  }
+
+  async function runNow() {
+    setBusy(true)
+    setMsg(null)
+    setProgress({ done: 0, total: 0 })
+    try {
+      const r = await runPrefetch({
+        force: true,
+        onProgress: (p) => setProgress(p),
+      })
+      setLast(r)
+      setMsg({
+        ok: r.fail === 0,
+        text:
+          r.total === 0
+            ? r.skipped > 0
+              ? `无需抓取：${r.skipped} 只都在 24 小时内抓过`
+              : '没有需要抓取的基金（持仓与自选为空？）'
+            : `抓取完成：成功 ${r.ok} 只，失败 ${r.fail} 只（共 ${r.total} 只）` +
+              (r.skipped > 0 ? `，跳过 ${r.skipped} 只（24h 内已抓）` : ''),
+      })
+    } catch (e) {
+      setMsg({ ok: false, text: '抓取失败：' + (e?.message || e) })
+    } finally {
+      setBusy(false)
+      setProgress(null)
+    }
+  }
+
+  const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0
+
+  return (
+    <>
+      <div className="section-title">数据预抓取</div>
+      <div className="card">
+        <div className="fund-row fund-row-static">
+          <div className="fund-main">
+            <div className="fund-name fund-name-normal">自动预抓取</div>
+            <div className="fund-meta">
+              进 App 后在后台分层抓净值历史：① 持仓 ② 自选 + 候选池 ③ 全市场排行（可选）
+            </div>
+          </div>
+          <button
+            className={prefs.enabled ? 'switch on' : 'switch'}
+            onClick={() => toggle('enabled')}
+            aria-label="自动预抓取"
+          />
+        </div>
+
+        <div className="fund-row fund-row-static" style={{ opacity: prefs.enabled ? 1 : 0.5 }}>
+          <div className="fund-main">
+            <div className="fund-name fund-name-normal">仅 WiFi 时抓取</div>
+            <div className="fund-meta">移动网络下不抓，避免耗流量</div>
+          </div>
+          <button
+            className={prefs.wifiOnly ? 'switch on' : 'switch'}
+            onClick={() => toggle('wifiOnly')}
+            disabled={!prefs.enabled}
+            aria-label="仅 WiFi"
+          />
+        </div>
+
+        <div className="fund-row fund-row-static" style={{ opacity: prefs.enabled ? 1 : 0.5 }}>
+          <div className="fund-main">
+            <div className="fund-name fund-name-normal">仅充电时抓取</div>
+            <div className="fund-meta">更省电，但数据可能不够新</div>
+          </div>
+          <button
+            className={prefs.chargingOnly ? 'switch on' : 'switch'}
+            onClick={() => toggle('chargingOnly')}
+            disabled={!prefs.enabled}
+            aria-label="仅充电"
+          />
+        </div>
+
+        <div className="fund-row fund-row-static" style={{ opacity: prefs.enabled ? 1 : 0.5 }}>
+          <div className="fund-main">
+            <div className="fund-name fund-name-normal">预热全市场排行前 30</div>
+            <div className="fund-meta">给筛选与对比预热，抓取量更大</div>
+          </div>
+          <button
+            className={prefs.includeMarket ? 'switch on' : 'switch'}
+            onClick={() => toggle('includeMarket')}
+            disabled={!prefs.enabled}
+            aria-label="预热全市场"
+          />
+        </div>
+
+        <div className="fund-row fund-row-static fund-row-noline">
+          <div className="fund-main">
+            <div className="fund-name fund-name-normal">立即抓取一次</div>
+            <div className="fund-meta">
+              {busy && progress
+                ? progress.total
+                  ? `进行中 ${progress.done}/${progress.total}（${pct}%）`
+                  : '正在统计待抓清单…'
+                : last?.at
+                  ? `上次 ${new Date(last.at).toLocaleString()} · 成功 ${last.ok} / 失败 ${last.fail}` +
+                    (last.skipped > 0 ? ` · 跳过 ${last.skipped}` : '')
+                  : '还没抓过'}
+            </div>
+          </div>
+          <button className="btn btn-sm" style={{ flex: 'none' }} onClick={runNow} disabled={busy}>
+            {busy ? '抓取中…' : '开始'}
+          </button>
+        </div>
+
+        {busy && progress?.total ? (
+          <div className="progress-track" style={{ marginTop: 'var(--space-2)' }}>
+            <div className="progress-rail">
+              <div className="progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        ) : null}
+
+        {msg ? (
+          <div
+            className={'callout ' + (msg.ok ? 'teal' : 'danger')}
+            style={{ marginTop: 'var(--space-3)' }}
+          >
+            {msg.text}
+          </div>
+        ) : null}
+
+        <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
+          只抓净值历史、存本机，不改任何持仓记录。自动抓取每 6 小时最多一次；
+          已抓过的 24 小时内不重复抓。
+        </p>
+      </div>
+    </>
+  )
 }

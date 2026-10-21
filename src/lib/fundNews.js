@@ -15,6 +15,7 @@
 //   - 接口返回的标题/摘要带 <em> 高亮标签，展示前剥掉
 
 import { fetchFundStocks } from './live.js'
+import { fetchFundAnnouncements } from './announcements.js'
 
 const CACHE_PREFIX = 'fund_news_'
 const CACHE_TTL = 24 * 60 * 60 * 1000
@@ -51,42 +52,8 @@ async function getText(url, referer, timeoutMs = 10000) {
   }
 }
 
-/** 基金公告（人事 / 分红 / 定期报告，可多类型合并） */
-export async function fetchFundAnnouncements(code, { types = [4, 2], limit = 5 } = {}) {
-  const out = []
-  for (const type of types) {
-    const url =
-      'https://api.fund.eastmoney.com/f10/JJGG' +
-      `?fundcode=${code}&pageIndex=1&pageSize=${limit}&type=${type}&_=${Date.now()}`
-    try {
-      const raw = await getText(url, `http://fundf10.eastmoney.com/jjgg_${code}_${type}.html`)
-      const rows = JSON.parse(raw)?.Data ?? []
-      for (const r of rows) {
-        const title = stripTag(r.TITLE || r.ShortTitle)
-        if (!title) continue
-        out.push({
-          kind: 'announce',
-          title,
-          date: String(r.PUBLISHDATEDesc || r.PUBLISHDATE || '').slice(0, 10),
-          url: '',
-        })
-      }
-    } catch {
-      // 单个类型失败不影响其他类型
-    }
-  }
-  // 按日期倒序去重
-  const seen = new Set()
-  return out
-    .filter((x) => {
-      const k = `${x.title}|${x.date}`
-      if (seen.has(k)) return false
-      seen.add(k)
-      return true
-    })
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .slice(0, limit)
-}
+/* 基金公告已由 lib/announcements.js 统一提供（证监会 eid 定期报告 +
+   基金公司官网临时公告），本文件不再保留旧的公告抓取包装。 */
 
 /** 个股新闻：东财搜索接口是 JSONP，要剥掉 cb(...) 外壳 */
 export async function fetchStockNews(keyword, limit = 5) {
@@ -135,11 +102,12 @@ export async function fetchStockNews(keyword, limit = 5) {
  * 抓一只基金的完整资讯：基金公告 + 前 N 大重仓股的新闻。
  * @returns {Promise<{code, announcements: Array, stockNews: Array, fetchedAt: number}>}
  */
-export async function fetchFundNews(code, { maxStocks = 3, perStock = 3, announceLimit = 5 } = {}) {
-  const [announcements, stocks] = await Promise.all([
-    fetchFundAnnouncements(code, { limit: announceLimit }),
+export async function fetchFundNews(code, { maxStocks = 3, perStock = 3, announceLimit = 6, name = '' } = {}) {
+  const [annRes, stocks] = await Promise.all([
+    fetchFundAnnouncements(code, { name, limit: announceLimit }),
     fetchFundStocks(code),
   ])
+  const announcements = annRes?.items || []
 
   const stockNews = []
   for (const s of stocks.slice(0, maxStocks)) {
@@ -149,7 +117,14 @@ export async function fetchFundNews(code, { maxStocks = 3, perStock = 3, announc
     }
   }
 
-  return { code, announcements, stockNews, fetchedAt: Date.now() }
+  return {
+    code,
+    announcements,
+    company: annRes?.company || '',
+    companySupported: !!annRes?.companySupported,
+    stockNews,
+    fetchedAt: Date.now(),
+  }
 }
 
 /** 读缓存（24 小时内复用，避免点开一次就抓一次） */

@@ -2,7 +2,8 @@
 // ------------------------------------------------------------
 // 输入「统一持仓行」（holdingsModel 输出），自动抓历史净值 / 指数 /
 // 行业配置 / 重仓股 / 分红公告，算出并渲染：
-//   每日收益 / 组合 vs 基准 / 组合风险（集中度·行业·重叠·TWR）/ 分红跟踪
+//   组合 vs 基准 / 组合风险（集中度·行业·重叠·TWR）/ 分红跟踪
+//   （每日收益按  要求从真实持仓移除，仅模拟账本 showDaily 时显示）
 //
 // 真实持仓页与模拟持仓页共用同一组件，口径只写一遍。
 
@@ -21,7 +22,7 @@ import {
 } from '../lib/portfolio_tools.js'
 import { DailyPnlCard, BenchmarkCard, RiskCard, DividendsCard } from './PortfolioPanels.jsx'
 
-export default function PortfolioToolbelt({ model = [] }) {
+export default function PortfolioToolbelt({ model = [], showDaily = false }) {
   const [tools, setTools] = useState({
     hist: {},
     index: [],
@@ -104,7 +105,7 @@ export default function PortfolioToolbelt({ model = [] }) {
 
   return (
     <>
-      <DailyPnlCard data={daily} />
+      {showDaily ? <DailyPnlCard data={daily} /> : null}
       <BenchmarkCard data={bench} />
       <RiskCard risk={risk} overlap={overlap} twr={twr} />
       <DividendsCard data={tools.dividends} />

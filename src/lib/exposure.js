@@ -65,7 +65,7 @@ export async function fetchIndustryAllocation(code) {
     const quarters = JSON?.parse(raw)?.Data?.QuarterInfos ?? []
     if (quarters.length === 0) return { allocation: [], reportDate: '' }
 
-    // 取报告期最新的那一期（JZRQ 形如 2026-06-30）
+    // 取报告期最新的那一期（JZRQ 形如 ）
     const latest = quarters.reduce((a, b) => (String(a.JZRQ) >= String(b.JZRQ) ? a : b))
     const rows = latest?.HYPZInfo ?? []
     const merged = {}

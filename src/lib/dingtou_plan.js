@@ -46,26 +46,46 @@ function sameDay(a, b) {
 export function loadPlans() {
   try {
     const arr = JSON.parse(localStorage.getItem(KEY) || '[]')
-    return Array.isArray(arr)
-      ? arr
-          .filter((p) => p && p.code && p.amount != null)
-          .map((p) => ({
-            id: Number(p.id) || 0,
-            code: String(p.code),
-            name: p.name || '',
-            amount: Number(p.amount) || 0,
-            frequency: ['weekly', 'biweekly', 'monthly'].includes(p.frequency)
-              ? p.frequency
-              : 'monthly',
-            weekday: Number(p.weekday) || 0,
-            day_of_month: Math.min(28, Math.max(1, Number(p.day_of_month) || 1)),
-            start_date: p.start_date || '',
-            enabled: p.enabled !== false,
-            auto_applied_periods: Number(p.auto_applied_periods) || 0,
-            last_auto_at: p.last_auto_at || '',
-            created_at: p.created_at || '',
-          }))
-      : []
+    if (!Array.isArray(arr)) return []
+    const valid = arr.filter((p) => p && p.code && p.amount != null)
+    // 先把已有合法 id 收进来，再给缺 id 的记录补号：老数据和导入数据以前会
+    // 被 Number(p.id) || 0 全部归一为 0，自动追加写回时只命中第一条，
+    // 其余计划每轮都被判「未投满」→ 重复扣款、账本凭空多份额。补号后落盘
+    // 一次性修掉。
+    const seen = new Set()
+    valid.forEach((p) => {
+      const n = Number(p.id)
+      if (Number.isFinite(n) && n > 0) seen.add(n)
+    })
+    let changed = false
+    let next = 1
+    const list = valid.map((p) => {
+      let id = Number(p.id)
+      if (!Number.isFinite(id) || id <= 0) {
+        while (seen.has(next)) next++
+        id = next
+        seen.add(id)
+        changed = true
+      }
+      return {
+        id,
+        code: String(p.code),
+        name: p.name || '',
+        amount: Number(p.amount) || 0,
+        frequency: ['weekly', 'biweekly', 'monthly'].includes(p.frequency)
+          ? p.frequency
+          : 'monthly',
+        weekday: Number(p.weekday) || 0,
+        day_of_month: Math.min(28, Math.max(1, Number(p.day_of_month) || 1)),
+        start_date: p.start_date || '',
+        enabled: p.enabled !== false,
+        auto_applied_periods: Number(p.auto_applied_periods) || 0,
+        last_auto_at: p.last_auto_at || '',
+        created_at: p.created_at || '',
+      }
+    })
+    if (changed) savePlans(list)
+    return list
   } catch {
     return []
   }
@@ -240,13 +260,13 @@ export async function notifyDueDingtou(now = new Date()) {
 
 const AUTO_KEY = 'dingtou_auto_apply'
 
-/** 读「到期自动追加到持仓」开关（默认开） */
+/** 读「到期自动追加到持仓」开关（默认关：账本变更必须由用户主动开启） */
 export function loadAutoApply() {
   try {
     const obj = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null')
-    return { enabled: true, ...(obj && typeof obj === 'object' ? obj : {}) }
+    return { enabled: false, ...(obj && typeof obj === 'object' ? obj : {}) }
   } catch {
-    return { enabled: true }
+    return { enabled: false }
   }
 }
 

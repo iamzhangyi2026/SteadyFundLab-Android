@@ -288,7 +288,7 @@ export async function checkAllAlerts({ codes = [], holdings = [] } = {}) {
   }
   if (rbLines.length > 0) {
     await sendFundAlert({
-      type: 'priceMove',
+      type: 'rebalance',
       title: '再平衡提醒',
       body: rbLines.slice(0, 4).join('、'),
     })

@@ -4,8 +4,28 @@
    （.card / .btn / .chip / .callout）。
    ============================================================ */
 
+/* ---------------- 根高度（滚动容器唯一化） ----------------
+   ⚠️   bug 修复：html/body/#root 必须显式 100% 高。
+   缺了它，.app-shell 的 height:100% 会退化成 auto（跟着内容长），
+   .app-body 就不再是唯一的滚动容器 —— 后果：
+     ① 页面整体靠 body 滚动，WebView 里表现成「滚不动」；
+     ② 底部内容（自选页的「发现机会 / 模拟账本」卡片）被悬浮 Tab 栏
+        盖住，点也点不到。
+   body 设 overflow:hidden，只让 .app-body 滚，杜绝双重滚动条。 */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
 /* ---------------- 自选观察首页 ---------------- */
-.watch-page { padding-bottom: var(--space-2); }
+/* 底部留足 Tab 栏空间：内容不长时也不会被悬浮 Tab 栏盖住 */
+.watch-page { padding-bottom: calc(var(--tabbar-total) + var(--space-4)); }
 .watch-welcome { padding: 5px 2px 21px; }
 .watch-eyebrow, .section-overline {
   display: flex; align-items: center; gap: 7px;
@@ -130,13 +150,20 @@
 .rh-row-num small.down { color: var(--down); }
 .rh-row-num small.flat { color: var(--flat); }
 /* 每只基金的四项小字段（估算净值 / 涨跌幅 / 估算收益 / 更新时间） */
+/* 每行 7 个字段（估算净值/持有份额/持有收益/持有收益率/涨跌幅/估算收益/更新时间）：
+   4 列 × 2 行，标签在上、数值在下 —— 横向省空间，长数值（-88.15%、10/21 16:08）不会被截断 */
 .rh-row-meta {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px 6px;
   margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(31,55,39,.09);
 }
-.rh-row-meta > span { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.rh-row-meta i { flex: none; color: #9aa298; font-size: 9px; font-style: normal; }
-.rh-row-meta b { overflow: hidden; color: #3a463c; font: 600 10px var(--font-num); white-space: nowrap; text-overflow: ellipsis; }
+.rh-row-meta > span {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;
+}
+.rh-row-meta i { flex: none; color: #9aa298; font-size: 9px; font-style: normal; line-height: 1.2; }
+.rh-row-meta b {
+  overflow: hidden; color: #3a463c; font: 600 12px var(--font-num);
+  white-space: nowrap; text-overflow: ellipsis; line-height: 1.25; max-width: 100%;
+}
 .rh-row-meta b.up { color: var(--up); }
 .rh-row-meta b.down { color: var(--down); }
 .rh-row-meta b.flat { color: var(--flat); }
@@ -521,6 +548,9 @@
 
 /* ---------------- 表单 ---------------- */
 .field { display: block; margin-bottom: var(--space-3); }
+/* 两个短字段并排（如 份额 + 成本金额） */
+.field-row { display: flex; gap: var(--space-3); }
+.field-row > .field { flex: 1; min-width: 0; }
 .field > span {
   display: block;
   font-size: var(--fs-kicker);
@@ -961,7 +991,7 @@
 .insight-note + .insight-note { margin-top: 8px; }
 
 /* ============================================================
-   新增功能样式
+   新增功能样式（）
    ------------------------------------------------------------
    多基金对比 / 大盘指数 / 组合工具 / 决策纪律线。
    全部复用现有卡片与令牌，不引入新框架。
@@ -1183,4 +1213,40 @@
   background: rgba(20, 26, 35, 0.92);
   color: var(--text);
   border-color: var(--border-strong);
+}
+
+/* ============================================================
+   自选行：来源徽章 + 行内操作（ ）
+   ============================================================ */
+.watch-row-wrap {
+  border-bottom: 1px solid rgba(31, 55, 39, .07);
+}
+.watch-row-wrap:last-child { border-bottom: none; }
+.watch-row-mainline { display: block; }
+.watch-row-ops {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 0 12px 10px 12px; margin-top: -2px;
+}
+.watch-row-ops .btn { flex: none; min-height: 30px; padding: 0 10px; font-size: 12px; }
+.src-badge {
+  flex: none; padding: 2px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .02em; line-height: 1.5;
+}
+.src-badge.algo { color: #4a5a6a; background: rgba(90, 120, 160, .12); border: 1px solid rgba(90, 120, 160, .22); }
+.src-badge.manual { color: #2f6b4f; background: rgba(60, 160, 110, .14); border: 1px solid rgba(60, 160, 110, .26); }
+.watch-head-actions { display: flex; align-items: center; gap: 10px; }
+
+/* 行内快捷表单（定投 / 加仓） */
+.quick-form {
+  margin: 0 12px 12px 12px; padding: 12px; border-radius: 12px;
+  background: rgba(255, 255, 255, .7); border: 1px solid rgba(31, 55, 39, .10);
+}
+.quick-form-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.quick-form-head b { font-size: 13px; color: #2c3a30; }
+.quick-form-head small { color: #8a938a; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-form .field { margin-bottom: 8px; }
+.quick-form select {
+  width: 100%; min-height: var(--touch-min); padding: 0 var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-md, 10px);
+  background: var(--surface-solid, #fff); color: var(--text); font-size: 14px;
 }

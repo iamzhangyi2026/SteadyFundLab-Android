@@ -11,7 +11,12 @@ import { useEffect, useMemo, useState } from 'react'
 import Stat from '../components/Stat.jsx'
 import { fetchFund, latestNetWorth, dayChange } from '../lib/eastmoney.js'
 import { fetchHoldingsLive } from '../lib/live.js'
-import { simHoldingByCode } from '../lib/simLedger.js'
+import {
+  loadSimHoldings,
+  removeSimHolding,
+  clearSimHoldings,
+  simHoldingByCode,
+} from '../lib/simLedger.js'
 import { fromSimRow, decorate } from '../lib/holdingsModel.js'
 import PortfolioToolbelt from '../components/PortfolioToolbelt.jsx'
 import { RebalancePanel } from '../components/PortfolioPanels.jsx'
@@ -24,37 +29,52 @@ const fmt2 = (n) =>
     : n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function SimHoldings() {
-  const [rows, setRows] = useState(null)
+  const [records, setRecords] = useState(null) // 明细（每笔一条，可删）
+  const [rows, setRows] = useState(null) // 聚合（组合分析用）
   const [liveMap, setLiveMap] = useState({})
   const [reloadKey, setReloadKey] = useState(0)
 
   usePullRefresh(() => setReloadKey((k) => k + 1))
 
-  /* 账本 + 净值（明细行展示：份额/投入/净值/当日涨跌） */
+  /* 明细 + 聚合一起刷新；删除后调 reload 即可 */
   useEffect(() => {
     let alive = true
+    const all = loadSimHoldings()
     const base = simHoldingByCode()
     if (base.length === 0) {
+      setRecords([])
       setRows([])
       return
     }
+    setRecords(null)
     setRows(null)
+    const codes = [...new Set(all.map((r) => r.code))]
     Promise.all(
-      base.map(async (b) => {
+      codes.map(async (code) => {
         try {
-          const d = await fetchFund(b.code)
+          const d = await fetchFund(code)
           const last = latestNetWorth(d.netWorth)
-          return {
-            ...b,
-            name: d.name || b.name,
-            nav: last ? last.y : null,
-            chg: dayChange(d.netWorth),
-          }
+          return { code, name: d.name, nav: last ? last.y : null, chg: dayChange(d.netWorth) }
         } catch {
-          return { ...b, nav: null, chg: null }
+          return { code, name: '', nav: null, chg: null }
         }
       }),
-    ).then((rs) => alive && setRows(rs))
+    ).then((navByCode) => {
+      if (!alive) return
+      const m = new Map(navByCode.map((n) => [n.code, n]))
+      setRecords(
+        all.map((r) => {
+          const n = m.get(r.code) || {}
+          return { ...r, name: n.name || r.name, nav: n.nav ?? null, chg: n.chg ?? null }
+        }),
+      )
+      setRows(
+        base.map((b) => {
+          const n = m.get(b.code) || {}
+          return { ...b, name: n.name || b.name, nav: n.nav ?? null, chg: n.chg ?? null }
+        }),
+      )
+    })
     return () => {
       alive = false
     }
@@ -87,6 +107,24 @@ export default function SimHoldings() {
 
   const loading = rows == null
   const empty = rows != null && loaded.length === 0
+
+  /* 删除单笔：先确认，删完刷新明细与汇总 */
+  function removeRec(rec) {
+    if (!window.confirm(`删除「${rec.name || rec.code}」的这笔模拟买入？\n仅删本机记录，不影响真实资产。`)) return
+    // removeSimHolding 在缺少 id 时返回 false —— 不判返回值的话，
+    // 用户点了删除但记录还在，界面毫无提示，像是没生效。
+    if (!removeSimHolding(rec.id)) {
+      window.alert('删除失败：这条记录缺少标识，请重新导入或重启 App 后再试。')
+      return
+    }
+    setReloadKey((k) => k + 1)
+  }
+
+  function clearAll() {
+    if (!window.confirm(`清空全部 ${records?.length || 0} 笔模拟买入记录？\n此操作不可恢复。`)) return
+    clearSimHoldings()
+    setReloadKey((k) => k + 1)
+  }
 
   return (
     <>
@@ -124,30 +162,29 @@ export default function SimHoldings() {
         </div>
       ) : (
         <>
-          <div className="section-title">持仓明细</div>
+          <div className="section-title">
+            持仓明细
+            <button className="text-action" style={{ marginLeft: 'auto' }} onClick={clearAll}>
+              清空全部
+            </button>
+          </div>
           <div className="card plain card-list">
-            {model.map((r) => (
-              <div className="fund-row fund-row-static" key={r.code}>
+            {(records || []).map((r) => (
+              <div className="fund-row fund-row-static" key={r.id || `${r.code}-${r.created_at}`}>
                 <div className="fund-main">
-                  <div className="fund-name">{r.name || r.code}</div>
+                  <div className="fund-name fund-name-normal">{r.name || r.code}</div>
                   <div className="fund-meta">
                     <span className="num">{r.code}</span>
-                    {r.shares != null ? ` · ${r.shares.toFixed(2)} 份` : ''} · 投入 ¥
-                    {fmt2(r.cost)}
-                    {liveMap[r.code]?.nav != null
-                      ? ` · 净值 ${liveMap[r.code].nav.toFixed(4)}`
-                      : ''}
+                    {r.shares != null ? ` · ${Number(r.shares).toFixed(2)} 份` : ''} · 投入 ¥
+                    {fmt2(Number(r.amount) || 0)}
+                    {r.nav_date ? ` · 净值日 ${r.nav_date}` : ''}
                   </div>
                 </div>
                 <div className="fund-num">
-                  <div className="fund-nav">{r.mv != null ? fmt2(r.mv) : '—'}</div>
-                  <div
-                    className={`fund-chg ${
-                      r.pnl == null || r.pnl === 0 ? 'flat' : r.pnl > 0 ? 'up' : 'down'
-                    }`}
-                  >
-                    {r.pnl == null ? '—' : `${r.pnl > 0 ? '+' : ''}${r.pnl.toFixed(2)}`}
-                  </div>
+                  {r.nav != null ? <div className="fund-nav">{r.nav.toFixed(4)}</div> : null}
+                  <button className="btn btn-sm" onClick={() => removeRec(r)}>
+                    删除
+                  </button>
                 </div>
               </div>
             ))}
@@ -158,7 +195,7 @@ export default function SimHoldings() {
       {/* 组合分析（与真实持仓共用同一套组件与口径） */}
       {!empty && !loading ? (
         <>
-          <PortfolioToolbelt model={model} />
+          <PortfolioToolbelt model={model} showDaily />
           <RebalancePanel holdings={model} />
           <GoalPanel principal={!loading ? mv : null} />
         </>

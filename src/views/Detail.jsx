@@ -52,9 +52,17 @@ import { detectJumps } from '../lib/navSanitize.js'
 import { toSeries } from '../lib/navCache.js'
 import { buildDecision } from '../lib/ai.js'
 import { fetchHoldingsLive } from '../lib/live.js'
+import { seedFund } from '../lib/seed.js'
 
 export default function Detail({ code, from = 'watch' }) {
-  const [state, setState] = useState({ status: 'loading', d: null, error: null })
+  /* 首屏：有内置种子就直接出数（秒开），后台再抓真实数据覆盖。
+     种子只有候选池那几只，其他基金仍走 loading。 */
+  const [state, setState] = useState(() => {
+    const s = seedFund(code)
+    return s
+      ? { status: 'ok', d: s, error: null, fromSeed: true }
+      : { status: 'loading', d: null, error: null }
+  })
   const [reloadKey, setReloadKey] = useState(0)
 
   /* 这只基金是否已经真实持有 —— 按账本判断，不按入口判断。
@@ -64,18 +72,34 @@ export default function Detail({ code, from = 'watch' }) {
     () => !!code && loadRealHoldings().some((r) => r.code === code),
     [code, reloadKey],
   )
-  const showTradeTools = from !== 'holding' && !isHeld
-  const showDeep = from === 'holding' || isHeld
+  /* 交易工具（费率试算 / 记录模拟买入）**恒显示**。
+      前的逻辑是「持仓基金藏起来」（from==='holding' 或 isHeld 时不显示），
+     指出这正是「买入不开放、人控没打开」——这些是纯本地沙盒操作，
+     不动真钱，没有理由按持仓状态隐藏；藏了用户就失去了控制入口。 */
+  const showTradeTools = true
+  /* 深度分析：持仓基金默认展开；非持仓基金也能手动展开（
+     要求「所有功能都开放」——不把六段式锁死在持仓入口后面）。 */
+  const [deepOpen, setDeepOpen] = useState(false)
+  const showDeep = from === 'holding' || isHeld || deepOpen
 
   // 下拉刷新：重新抓这只基金的净值
   usePullRefresh(() => setReloadKey((k) => k + 1))
 
   useEffect(() => {
     let alive = true
-    setState({ status: 'loading', d: null, error: null })
+    /* 有种子先顶上（不闪骨架），没有才进 loading；
+       网络结果回来后覆盖，失败则保留种子数据 + 不打断浏览。 */
+    const s = seedFund(code)
+    if (s) setState({ status: 'ok', d: s, error: null, fromSeed: true })
+    else setState({ status: 'loading', d: null, error: null })
+
     fetchFund(code)
-      .then((d) => alive && setState({ status: 'ok', d, error: null }))
-      .catch((e) => alive && setState({ status: 'error', d: null, error: e.message }))
+      .then((d) => alive && setState({ status: 'ok', d, error: null, fromSeed: false }))
+      .catch((e) => {
+        if (!alive) return
+        if (s) setState({ status: 'ok', d: s, error: e.message, fromSeed: true })
+        else setState({ status: 'error', d: null, error: e.message })
+      })
     return () => {
       alive = false
     }
@@ -312,6 +336,15 @@ export default function Detail({ code, from = 'watch' }) {
         showBacktest={showTradeTools}
       />
 
+      {/* 深度分析：非持仓基金可手动展开（不锁在持仓入口后面） */}
+      {!showDeep ? (
+        <div className="card">
+          <button className="btn btn-block" onClick={() => setDeepOpen(true)}>
+            查看深度分析（位置 / 趋势 / 硬指标 / 分红 / 信号 / 建议）
+          </button>
+        </div>
+      ) : null}
+
       {/* 深度分析（真实持仓入口）：持仓条 + 六段式 */}
       {showDeep ? (
         <>
@@ -382,7 +415,7 @@ export default function Detail({ code, from = 'watch' }) {
         <div className="stat-grid" style={{ marginTop: 0 }}>
           <Stat k="原始费率" v={`${d.sourceRate ?? '—'}%`} />
           <Stat k="折后费率" v={`${d.rate ?? '—'}%`} cls="down" />
-          <Stat k="持仓股票" v={`${d.stockCodes.length} 只`} />
+          <Stat k="持仓股票" v={`${d.stockCodes?.length ?? 0} 只`} />
           <Stat k="渠道折扣" v={impliedDiscount ? `${impliedDiscount.toFixed(2)} 折` : '—'} />
         </div>
       </div>

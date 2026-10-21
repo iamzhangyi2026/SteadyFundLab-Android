@@ -1,16 +1,16 @@
 {
-  "name": "fund-app",
+  "name": "fund-app-prototype",
   "private": true,
-  "version": "2.3",
+  "version": "2.4",
   "type": "module",
   "description": "基金沙盒 · 纯客户端移动端原型（Capacitor + React）",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync": "cap sync android",
+    "sync": "cap copy android",
     "open:android": "cap open android",
-    "apk": "npm run build && cap sync android && cd android && gradlew assembleDebug"
+    "apk": "npm run build && cap copy android && cd android && gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -23,7 +23,6 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/network": "^8.0.1",
     "@capacitor/share": "^8.0.2",
-    "@capgo/capacitor-updater": "^8.51.18",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tesseract.js": "^7.0.0"

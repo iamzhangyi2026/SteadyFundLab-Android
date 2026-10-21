@@ -8,6 +8,9 @@
 //
 // 只做真实数据读写，不做任何字段猜测：导不出的列留空。
 
+import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
 import { loadRealHoldings, addRealHoldings } from './realLedger.js'
 import { loadSimHoldings } from './simLedger.js'
 
@@ -15,7 +18,10 @@ const HEADER = ['code', 'name', 'shares', 'amount', 'pct', 'nav_at_import', 'nav
 
 function esc(v) {
   if (v == null) return ''
-  const s = String(v)
+  const raw = String(v)
+  /* Excel 会把 = + - @ 开头的单元格当公式执行（CSV 注入）。
+     基金名称/备注理论上可能带这些字符，先前置单引号再走引号包裹。 */
+  const s = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
@@ -58,7 +64,43 @@ export function simHoldingsCsv() {
 }
 
 /** 触发浏览器/WebView 下载 */
-export function downloadText(filename, text, mime = 'text/csv;charset=utf-8') {
+/**
+ * 导出文本文件（CSV）。
+ *
+ * ⚠️  （ 20 Pro / Android 16）：WebView 里
+ * `a[download].click()` 不会触发系统下载——提示「已生成」但文件根本没落盘。
+ * 原生环境改走 Capacitor Filesystem 写文件 + Share 调起系统分享面板，
+ * 由用户选保存位置（微信 / 邮件 / 云盘 / 文件管理器），导出真正可用。
+ *
+ * @returns {Promise<{ok:boolean, uri?:string, error?:string}>}
+ */
+export async function downloadText(filename, text, mime = 'text/csv;charset=utf-8') {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const r = await Filesystem.writeFile({
+        path: filename,
+        data: text,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      })
+      // 分享面板：用户自己选存哪儿（不猜路径、不静默写盘）
+      await Share.share({
+        title: filename,
+        text: `已导出 ${filename}，选择保存或发送方式`,
+        url: r.uri,
+        dialogTitle: '保存 / 发送导出文件',
+      })
+      return { ok: true, uri: r.uri }
+    } catch (e) {
+      // 用户取消分享不算失败：文件已经落盘
+      const msg = e?.message || String(e)
+      if (/cancel|取消/i.test(msg)) return { ok: true }
+      return { ok: false, error: msg }
+    }
+  }
+
+  /* 浏览器调试：保留 blob 下载 */
   try {
     const blob = new Blob([text], { type: mime })
     const url = URL.createObjectURL(blob)
@@ -69,9 +111,9 @@ export function downloadText(filename, text, mime = 'text/csv;charset=utf-8') {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 3000)
-    return true
-  } catch {
-    return false
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) }
   }
 }
 
@@ -113,7 +155,12 @@ export function parseCsv(text) {
 }
 
 const numOrNull = (v) => {
-  const n = parseFloat(String(v ?? '').trim())
+  // 先剥掉千分位逗号和数字内部空格（Excel / 支付宝导出的 CSV 很常见）：
+  // 否则 parseFloat("1,234.56") 只会得到 1，而 Number.isFinite(1) 为真，
+  // 于是金额被按 1 元静默写进真实账本，用户完全看不出错了。
+  const s = String(v ?? '').trim().replace(/[,\s]/g, '')
+  if (!s) return null
+  const n = parseFloat(s)
   return Number.isFinite(n) ? n : null
 }
 

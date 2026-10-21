@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   自适应图标的背景：蓝 -> 青竖向渐变。
-  颜色和方向跟 tools/make-icon.py 里的 C_TOP / C_BOTTOM 保持一致
-  （#3B6EF6 -> #0D9488，自上而下），这样传统方形图标和自适应图标看起来是同一个。
+  颜色与方向：#3B6EF6 -> #0D9488，自上而下。这样传统方形图标和自适应图标看起来是同一个。
 
   为什么非得有这个文件：
     mipmap-anydpi-v26/ic_launcher.xml 原来把背景指向 @color/ic_launcher_background，
