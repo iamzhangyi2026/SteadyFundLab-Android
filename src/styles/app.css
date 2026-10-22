@@ -5,7 +5,7 @@
    ============================================================ */
 
 /* ---------------- 根高度（滚动容器唯一化） ----------------
-   ⚠️   bug 修复：html/body/#root 必须显式 100% 高。
+   html/body/#root 必须显式 100% 高。
    缺了它，.app-shell 的 height:100% 会退化成 auto（跟着内容长），
    .app-body 就不再是唯一的滚动容器 —— 后果：
      ① 页面整体靠 body 滚动，WebView 里表现成「滚不动」；
@@ -27,7 +27,7 @@ body {
 /* 底部留足 Tab 栏空间：内容不长时也不会被悬浮 Tab 栏盖住 */
 .watch-page { padding-bottom: calc(var(--tabbar-total) + var(--space-4)); }
 .watch-welcome { padding: 5px 2px 21px; }
-.watch-eyebrow, .section-overline {
+.watch-eyebrow {
   display: flex; align-items: center; gap: 7px;
   color: #768176; font-size: 10px; font-weight: 700;
   letter-spacing: 1.35px;
@@ -61,10 +61,30 @@ body {
 .market-foot-mark { display:grid;place-items:center;width:13px;height:13px;border:1px solid rgba(237,245,232,.5);border-radius:50%;font:600 9px Georgia; }
 .watch-section-head { display:flex; align-items:flex-end; justify-content:space-between; margin:0 2px 10px; }
 .watch-section-head h2 { margin:2px 0 0; font-size:19px; line-height:1.2; letter-spacing:-.4px; color:#202b24; }
-.section-overline { font-size:9px; letter-spacing:1.25px; color:#929a90; }
 .text-action { padding:7px 9px; border:0; background:transparent; color:#4e7862; font-size:12px; font-weight:600; }
 .text-action:disabled { opacity:.48; }
 .watch-list-card { overflow:hidden; padding:1px 13px; background:rgba(255,255,255,.84); border:1px solid rgba(32,53,39,.07); border-radius:17px; box-shadow:0 5px 18px rgba(31,55,39,.045); }
+/* 自选查找框：本地过滤当前列表，无网络请求 */
+.watch-find { display:flex; align-items:center; gap:8px; margin:0 2px 10px; padding:0 12px; min-height:42px; background:rgba(255,255,255,.84); border:1px solid rgba(32,53,39,.07); border-radius:13px; box-shadow:0 3px 12px rgba(31,55,39,.04); transition:border-color var(--motion-fast) var(--ease); }
+.watch-find:focus-within { border-color:rgba(78,120,98,.45); }
+.watch-find-icon { flex:none; color:#8b9389; font-size:16px; line-height:1; }
+.watch-find input { flex:1; min-width:0; border:0; background:transparent; outline:none; color:#29342c; font-size:13px; }
+.watch-find input::placeholder { color:#a6ada5; }
+.watch-find-count { flex:none; color:#788279; font:600 11px var(--font-num); white-space:nowrap; }
+.watch-find-clear { flex:none; padding:5px 9px; border:0; border-radius:8px; background:rgba(32,53,39,.07); color:#4e7862; font-size:11px; font-weight:600; }
+.watch-find-clear:active { opacity:.7; }
+/* 全市场搜索结果行 */
+.watch-search-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(31,55,39,.075); }
+.watch-search-row:last-child { border-bottom:0; }
+.watch-search-main { flex:1; min-width:0; }
+.watch-search-main strong { display:block; overflow:hidden; color:#29342c; font-size:13px; font-weight:600; white-space:nowrap; text-overflow:ellipsis; }
+.watch-search-main small { display:flex; align-items:center; gap:5px; margin-top:5px; color:#969e95; font-size:10px; white-space:nowrap; }
+.watch-search-main small i { width:2px; height:2px; border-radius:50%; background:#b4bbb2; }
+.watch-search-main .fund-code { font-family:var(--font-num); color:#788279; }
+.watch-search-row .btn { flex:none; min-height:30px; padding:0 10px; font-size:12px; }
+.watch-search-row .btn.is-added { background:rgba(32,53,39,.07); color:#788279; }
+.search-hint { padding:18px 4px; text-align:center; color:#8b9389; font-size:12px; line-height:1.7; }
+.search-hint.is-error { color:#b17c42; }
 .watch-fund-row { display:flex; width:100%; min-height:72px; align-items:center; gap:10px; padding:10px 0; border:0; border-bottom:1px solid rgba(31,55,39,.075); background:transparent; text-align:left; color:inherit; cursor:pointer; }
 .watch-fund-row:last-child { border-bottom:0; }.watch-fund-row:active { opacity:.72; }
 .fund-avatar { flex:none; width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:#eaf1e9;color:#4f7b5e;font-size:15px;font-weight:700; }
@@ -103,6 +123,7 @@ body {
 .rh-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .rh-label { color: #8b9389; font-size: 10px; letter-spacing: .4px; }
 .rh-num { margin-top: 4px; color: #1b2a21; font: 600 30px/1.1 var(--font-num); letter-spacing: -1.2px; }
+.rh-flag { margin-left: 7px; font-size: 11px; font-style: normal; font-weight: 400; letter-spacing: 0; color: var(--text-mute); }
 .rh-pnl { flex: none; text-align: right; }
 .rh-pnl span { display: block; color: #8b9389; font-size: 10px; }
 .rh-pnl strong { display: block; margin-top: 5px; color: #2a362d; font: 600 15px var(--font-num); }
@@ -824,7 +845,7 @@ body {
 }
 
 /* ---------------- 详情页：分析 / 资讯 ----------------
-   分析 = 核心指标 + 回撤修复 + 定投回测；
+   分析 = 核心指标 + 下跌修复 + 定投回测；
    资讯 = 基金公告 + 重仓股新闻（数据抓取见 lib/fundNews.js）。 */
 
 /* 指标旁的「?」按钮：点一下就地看术语说明 */
@@ -845,7 +866,7 @@ body {
 }
 .metric-help-box b { margin-right: 6px; }
 
-/* 分析卡的说明小字（回撤叙述 / 定投叙述） */
+/* 分析卡的说明小字（下跌叙述 / 定投叙述） */
 .analysis-note {
   margin: var(--space-3) 2px 0;
   font-size: var(--fs-kicker); line-height: 1.75; color: var(--text-mute);
@@ -958,7 +979,7 @@ body {
 @keyframes pullSpin { to { transform: rotate(360deg); } }
 
 /* ---------------- 穿透分析 ----------------
-   行业分布条 + 人读叙述。集中在卡片里，视觉上比回撤/定投更轻。 */
+   行业分布条 + 人读叙述。集中在卡片里，视觉上比下跌/定投更轻。 */
 
 /* 一行行业：名称 + 占比条 + 数值 */
 .insight-row {
@@ -991,7 +1012,7 @@ body {
 .insight-note + .insight-note { margin-top: 8px; }
 
 /* ============================================================
-   新增功能样式（）
+   新增功能样式
    ------------------------------------------------------------
    多基金对比 / 大盘指数 / 组合工具 / 决策纪律线。
    全部复用现有卡片与令牌，不引入新框架。
@@ -1137,7 +1158,6 @@ body {
   color: var(--teal);
 }
 [data-theme='dark'] .watch-welcome p,
-[data-theme='dark'] .section-overline,
 [data-theme='dark'] .watch-eyebrow {
   color: var(--text-mute);
 }
@@ -1165,6 +1185,7 @@ body {
 [data-theme='dark'] .rh-card,
 [data-theme='dark'] .rh-list,
 [data-theme='dark'] .watch-list-card,
+[data-theme='dark'] .watch-find,
 [data-theme='dark'] .quick-card,
 [data-theme='dark'] .privacy-note,
 [data-theme='dark'] .market-card {
@@ -1172,6 +1193,18 @@ body {
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
 }
+[data-theme='dark'] .watch-find-icon,
+[data-theme='dark'] .watch-find-count { color: var(--text-mute); }
+[data-theme='dark'] .watch-find input { color: var(--text); }
+[data-theme='dark'] .watch-find input::placeholder { color: var(--text-mute); }
+[data-theme='dark'] .watch-find-clear { background: rgba(255, 255, 255, 0.10); color: var(--teal); }
+[data-theme='dark'] .watch-search-row { border-color: rgba(255, 255, 255, 0.10); }
+[data-theme='dark'] .watch-search-main strong { color: var(--text); }
+[data-theme='dark'] .watch-search-main small,
+[data-theme='dark'] .watch-search-main .fund-code,
+[data-theme='dark'] .search-hint { color: var(--text-mute); }
+[data-theme='dark'] .search-hint.is-error { color: var(--warn); }
+[data-theme='dark'] .watch-search-row .btn.is-added { background: rgba(255, 255, 255, 0.10); color: var(--text-mute); }
 [data-theme='dark'] .rh-label,
 [data-theme='dark'] .rh-pnl span,
 [data-theme='dark'] .rh-stats span,
@@ -1198,7 +1231,7 @@ body {
   background: rgba(255, 255, 255, 0.20);
 }
 /* ⚠️ 必须在 .switch 之后：否则 [data-theme] .switch 会压过 .switch.on，
-   开启态也显示成灰色（ 发现）。 */
+   开启态也显示成灰色。 */
 [data-theme='dark'] .switch.on {
   background: var(--accent);
 }
@@ -1216,7 +1249,7 @@ body {
 }
 
 /* ============================================================
-   自选行：来源徽章 + 行内操作（ ）
+   自选行：来源徽章 + 行内操作
    ============================================================ */
 .watch-row-wrap {
   border-bottom: 1px solid rgba(31, 55, 39, .07);

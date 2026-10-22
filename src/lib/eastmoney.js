@@ -76,7 +76,7 @@ function rate(text, name) {
 function buildFundData(text, code) {
   // ⚠️ 接口返回的数组不保证按日期升序，显式排序，不依赖接口顺序。
   const netWorth = arrayOf(text, 'Data_netWorthTrend').slice().sort((a, b) => a.x - b.x)
-  // ⚠️ （  20 Pro）发现：两个数组格式不一样！
+  // 两个数组格式不一样：
   //   Data_netWorthTrend = [{x, y, equityReturn, unitMoney}, ...]  对象数组
   //   Data_ACWorthTrend  = [[时间戳, 累计净值], ...]               数组的数组
   // 不归一化的话累计净值的 d.y 恒为 undefined，区间涨幅会算成 NaN 渲染到界面。
@@ -143,7 +143,7 @@ function fetchViaScript(code) {
         const netWorth = [...(window.Data_netWorthTrend || [])].sort(
           (a, b) => a.x - b.x
         )
-        // ⚠️ （  20 Pro）发现：两个数组格式不一样！
+        // 两个数组格式不一样：
         //   Data_netWorthTrend = [{x, y, equityReturn, unitMoney}, ...]  对象数组
         //   Data_ACWorthTrend  = [[时间戳, 累计净值], ...]               数组的数组
         // 不归一化的话累计净值的 d.y 恒为 undefined，区间涨幅会算成 NaN 渲染到界面。

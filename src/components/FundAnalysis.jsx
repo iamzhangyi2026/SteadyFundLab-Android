@@ -1,13 +1,13 @@
 // src/components/FundAnalysis.jsx · 单只基金分析卡
 // ------------------------------------------------------------
 // 内容：
-//   ① 核心指标：近 1 月/3 月/半年/1 年、最大回撤、年化波动、历史长度、数据截至
-//      （口径：区间涨幅用**累计净值**，历史表现口径；回撤/波动用累计净值日收益算）
-//   ② 回撤修复：定位史上最深那次下跌，回答「最深跌多少、跌了多久、多久才涨回来」
+//   ① 核心指标：近 1 月/3 月/半年/1 年、最深跌、一年波动幅度、历史长度、数据截至
+//      （口径：区间涨幅用**累计净值**，历史表现口径；下跌/波动用累计净值日收益算）
+//   ② 下跌修复：定位史上最深那次下跌，回答「最深跌多少、跌了多久、多久才涨回来」
 //   ③ 定投回测：用真实净值模拟定期定额，与同期「一把梭」对比
 //
 // 纯前端计算（lib/navlab.js），不额外发请求 —— 净值序列由详情页已经抓好的数据提供。
-// 术语都带一句就地说明，不把「年化波动」这类词直接甩给用户。
+// 术语都带一句就地说明，不把「一年波动幅度」这类词直接甩给用户。
 
 import { useMemo, useState } from 'react'
 import Stat from './Stat.jsx'
@@ -18,8 +18,8 @@ import { detectJumps } from '../lib/navSanitize.js'
 const METRIC_HELP = {
   accNav: '累计净值：把历史上的分红重新投进去之后的净值，看真实收益认准它。',
   ret: '往前推对应时间段的总涨幅。比如「近 1 年 +12%」＝一年前买入并持有到今天赚 12%。',
-  mdd: '最大回撤：历史上从最高点跌到最低点，最深跌了多少。-35% 表示最惨的时候比高点亏 35%。',
-  vol: '年化波动：净值上下蹦跶的剧烈程度。数字越大越刺激、也越容易拿不住。',
+  mdd: '最深跌：历史上从最高点跌到最低点，最深跌了多少。-35% 表示最惨的时候比高点亏 35%。',
+  vol: '一年波动幅度：净值上下蹦跶的剧烈程度。数字越大越刺激、也越容易拿不住。',
   hist: '这只基金有多少个交易日的历史净值。数据越长，上面的统计越可信。',
 }
 
@@ -50,8 +50,8 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
   const [freq, setFreq] = useState('monthly')
   const [win, setWin] = useState('730')
 
-  /* 数据源异常跳变防护：含单日 ≥50% 跳变时，回撤/波动/定投回测全部失真
-     （001594 ），一律留空并提示，不显示跨口径结果。 */
+  /* 数据源异常跳变防护：含单日 ≥50% 跳变时，下跌/波动/定投回测全部失真，
+     一律留空并提示，不显示跨口径结果。 */
   const jumps = useMemo(() => detectJumps(series), [series])
   const suspect = jumps.length > 0
 
@@ -71,7 +71,6 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
     <div className="analysis-card">
       <div className="watch-section-head">
         <div>
-          <span className="section-overline">ANALYSIS</span>
           <h2>分析</h2>
         </div>
       </div>
@@ -79,7 +78,7 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
       {suspect ? (
         <div className="callout warn" style={{ marginBottom: 'var(--space-3)' }}>
           净值序列存在数据源异常跳变（{jumps[0].prevDate} → {jumps[0].date} 净值 {jumps[0].from} →{' '}
-          {jumps[0].to}），最大回撤、年化波动、定投回测已停算，不显示跨口径结果。
+          {jumps[0].to}），最深跌、一年波动幅度、定投回测已停算，不显示跨口径结果。
         </div>
       ) : null}
 
@@ -101,14 +100,14 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
             onHelp={toggleHelp}
           />
           <Metric
-            label="最大回撤"
+            label="最深跌"
             v={dd && !dd.flat ? `${dd.maxDrawdown.toFixed(2)}%` : '—'}
             cls={dd && !dd.flat ? 'down' : ''}
             helpKey="mdd"
             help={help}
             onHelp={toggleHelp}
           />
-          <Metric label="年化波动" v={vol != null ? `${vol.toFixed(2)}%` : '—'} helpKey="vol" help={help} onHelp={toggleHelp} />
+          <Metric label="一年波动幅度" v={vol != null ? `${vol.toFixed(2)}%` : '—'} helpKey="vol" help={help} onHelp={toggleHelp} />
           <Metric label="历史长度" v={dataDays != null ? `${dataDays} 天` : '—'} helpKey="hist" help={help} onHelp={toggleHelp} />
           <Metric label="数据截至" v={latestDate || '—'} />
         </div>
@@ -120,13 +119,13 @@ export default function FundAnalysis({ series, accNav, latestDate, dataDays, m1,
         ) : null}
       </div>
 
-      {/* 回撤修复 */}
-      <div className="section-title">回撤修复</div>
+      {/* 下跌修复 */}
+      <div className="section-title">下跌修复</div>
       <div className="card" style={{ marginBottom: 'var(--space-3)' }}>
         {!dd ? (
-          <div className="card-note">净值数据不足，无法计算回撤。</div>
+          <div className="card-note">净值数据不足，无法计算下跌。</div>
         ) : dd.flat ? (
-          <div className="card-note">这段历史里净值一路上行，没有出现明显回撤。</div>
+          <div className="card-note">这段历史里净值一路上行，没有出现明显下跌。</div>
         ) : (
           <>
             <div className="stat-grid" style={{ marginTop: 0 }}>

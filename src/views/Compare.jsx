@@ -1,20 +1,15 @@
-// src/views/Compare.jsx · 多基金对比页（C4）
+// src/views/Compare.jsx · 多基金对比页
 // ------------------------------------------------------------
 // 入口在「发现」页。候选 = 真实持仓 + 内置观察池，最多选 6 只。
 // 只做并排统计，不排名、不推荐。
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CompareTable from '../components/CompareTable.jsx'
 import { loadRealHoldings } from '../lib/realLedger.js'
+import { fetchFund } from '../lib/eastmoney.js'
 
-const POOL = [
-  { code: '040001', name: '华夏成长' },
-  { code: '110010', name: '易方达价值成长' },
-  { code: '000021', name: '华夏优势增长' },
-  { code: '100038', name: '富国低碳环保' },
-  { code: '001594', name: '天弘中证银行' },
-  { code: '519674', name: '银河创新成长' },
-]
+// 候选池只放代码：名称一律用接口返回值，抓不到就显示代码，不写死会过期的名称
+const POOL = ['040001', '110010', '000021', '100038', '001594', '519674']
 
 const MAX = 6
 
@@ -22,24 +17,52 @@ export default function Compare({ onOpen }) {
   const candidates = useMemo(() => {
     const held = loadRealHoldings()
       .filter((r) => r.code)
-      .map((r) => ({ code: r.code, name: r.name || r.code }))
-    const seen = new Set()
-    return [...held, ...POOL].filter((x) => {
-      if (!x.code || seen.has(x.code)) return false
-      seen.add(x.code)
-      return true
-    })
+      .map((r) => ({ code: r.code, name: r.name || '', held: true }))
+    const seen = new Set(held.map((x) => x.code))
+    return [
+      ...held,
+      ...POOL.filter((c) => !seen.has(c)).map((code) => ({ code, name: '', held: false })),
+    ]
   }, [])
 
+  /* 内置池的名称先空着，等接口返回再补。
+     fetchFund 有模块级缓存，对比表格随后取同一只不会重复请求。 */
+  const [names, setNames] = useState({})
+  useEffect(() => {
+    let alive = true
+    candidates
+      .filter((c) => !c.held)
+      .forEach((c) =>
+        fetchFund(c.code)
+          .then((d) => {
+            if (alive && d?.name) setNames((p) => ({ ...p, [c.code]: d.name }))
+          })
+          .catch(() => {}),
+      )
+    return () => {
+      alive = false
+    }
+  }, [candidates])
+
   const [picked, setPicked] = useState(() => candidates.slice(0, 3).map((x) => x.code))
+  const [msg, setMsg] = useState('')
 
   function toggle(code) {
-    setPicked((prev) => {
-      if (prev.includes(code)) {
-        return prev.length <= 2 ? prev : prev.filter((c) => c !== code)
+    if (picked.includes(code)) {
+      if (picked.length <= 2) {
+        setMsg('至少保留 2 只才能对比')
+        return
       }
-      return prev.length >= MAX ? prev : [...prev, code]
-    })
+      setPicked(picked.filter((c) => c !== code))
+      setMsg('')
+      return
+    }
+    if (picked.length >= MAX) {
+      setMsg(`最多同时对比 ${MAX} 只`)
+      return
+    }
+    setPicked([...picked, code])
+    setMsg('')
   }
 
   return (
@@ -56,10 +79,15 @@ export default function Compare({ onOpen }) {
               onClick={() => toggle(c.code)}
               style={{ border: 0, cursor: 'pointer' }}
             >
-              {c.name}
+              {c.held ? c.name || c.code : names[c.code] || c.code}
             </button>
           ))}
         </div>
+        {msg ? (
+          <div className="card-note" style={{ marginTop: 'var(--space-2)' }}>
+            {msg}
+          </div>
+        ) : null}
       </div>
 
       <div className="section-title">对比结果</div>

@@ -32,7 +32,6 @@ export default function FundInsight({ code, name }) {
     <div className="insight-card">
       <div className="watch-section-head">
         <div>
-          <span className="section-overline">PORTFOLIO INSIGHT</span>
           <h2>穿透分析</h2>
         </div>
         {v?.exposure?.reportDate ? (

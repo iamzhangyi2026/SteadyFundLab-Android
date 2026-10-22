@@ -4,7 +4,7 @@
 // 做法：把候选池基金最近 250 个交易日的净值序列随包打进 seed.json，
 //       启动时写进 navCache（已有缓存的不覆盖），页面首屏直接用。
 //
-// 种子随版本更新，定期重新生成。
+// 种子随版本更新：发版前跑 `node tools/gen-seed.mjs` 重新生成。
 // 边界：只覆盖候选池基金（自选/持仓是用户自己的数据，不预置）。
 //       种子是「快照」，不是最新价 —— 页面会在后台用真实数据刷新并覆盖。
 
@@ -58,8 +58,7 @@ export function seedFund(code) {
     rate: null,
     sourceRate: null,
     minBuy: null,
-    /* 种子没有重仓股字段，给空数组 —— 下游有地方直接取 .length，
-      undefined 会在渲染时抛错整棵树（ 白屏教训）。 */
+    /* 种子没有重仓股字段，给空数组 —— 下游直接取 .length，undefined 会在渲染时抛错 */
     stockCodes: [],
     fromSeed: true,
   }

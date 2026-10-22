@@ -3,13 +3,10 @@
 // 四类预警，共用一套规则存储（localStorage `alert_rules`）：
 //   1. 涨跌预警    单日涨跌幅绝对值 ≥ movePct
 //   2. 净值预警    最新净值 ≤ 用户设定的目标净值
-//   3. 估值洼地    累计净值历史分位 < undervaluedPct
+//   3. 估值洼地    历史位置 < undervaluedPct
 //   4. 再平衡      实际占比与目标占比偏离 ≥ rebalanceDevPct 个百分点
 //
-// ⚠️  修正：此前「我的」页开关存 notify_prefs、本模块读 alert_rules，
-//    两套存储互不联通，且估值洼地只有开关没有检查逻辑（假开关）。
-//    现在统一到 alert_rules，由「我的」页直接读写。
-//
+// 规则统一存在 alert_rules，由「我的」页直接读写（两处共用一份，不再各存各的）。
 // 通知策略：同一只基金、同一天、同一类型只提醒一次；每类汇总成一条通知，
 // 避免多只同时命中时刷屏。没通知权限时只返回命中结果，不发通知。
 
@@ -30,7 +27,7 @@ export const ALERT_DEFAULTS = {
   movePct: 3, // 单日涨跌阈值（%）
   navTargets: {}, // { code: 目标净值 }，最新净值 ≤ 目标时提醒
   undervaluedEnabled: true, // 估值洼地提醒
-  undervaluedPct: 30, // 分位低于该值视为洼地
+  undervaluedPct: 30, // 位置低于该值视为洼地
   rebalanceEnabled: true, // 再平衡提醒
   rebalanceDevPct: 10, // 偏离目标 ≥ 该百分点提醒
 }
@@ -158,9 +155,9 @@ export async function checkNavTargetAlerts(codes, rules = loadAlertRules()) {
 /* ---------------- 3. 估值洼地预警 ---------------- */
 
 /**
- * 对给定基金算累计净值历史分位，低于阈值即命中。
+ * 对给定基金算历史位置，低于阈值即命中。
  * 每只基金一次 pingzhongdata 请求（有内存缓存），失败跳过、不猜。
- * 净值序列含异常跳变时该基金不参与（分位会失真，见 lib/navSanitize.js）。
+ * 净值序列含异常跳变时该基金不参与（位置会失真，见 lib/navSanitize.js）。
  */
 export async function checkUndervaluedAlerts(codes, rules = loadAlertRules()) {
   if (!rules.undervaluedEnabled) return []
@@ -267,14 +264,14 @@ export async function checkAllAlerts({ codes = [], holdings = [] } = {}) {
   const uvLines = []
   for (const h of undervalued) {
     if (fresh('undervalued', h.code)) {
-      uvLines.push(`${h.name || h.code} 分位 ${h.percentile}%`)
+      uvLines.push(`${h.name || h.code} 位置 ${h.percentile}%`)
     }
   }
   if (uvLines.length > 0) {
     await sendFundAlert({
       type: 'undervalued',
       title: '估值洼地提醒',
-      body: `跌进历史低分位：${uvLines.slice(0, 4).join('、')}`,
+      body: `跌进历史低位置：${uvLines.slice(0, 4).join('、')}`,
     })
     sent++
   }

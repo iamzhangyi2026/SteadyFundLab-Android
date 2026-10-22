@@ -3,7 +3,7 @@
  * ------------------------------------------------------------
  * 六段内容：
  *   ① 单位净值 + 日涨跌 + 近 90 日迷你走势（纯 SVG，不引图表库）
- *   ② 分析：区间表现 / 最大回撤 / 年化波动 + 回撤修复 + 定投回测
+ *   ② 分析：区间表现 / 最深跌 / 一年波动幅度 + 下跌修复 + 定投回测
  *   ③ 费率
  *   ④ 费率试算 —— 申购费（外扣法）与赎回费（自然日阶梯）
  *   ⑤ 记录模拟买入
@@ -53,6 +53,17 @@ import { toSeries } from '../lib/navCache.js'
 import { buildDecision } from '../lib/ai.js'
 import { fetchHoldingsLive } from '../lib/live.js'
 import { seedFund } from '../lib/seed.js'
+import TradeStatusCard from '../components/TradeStatusCard.jsx'
+import {
+  loadTradeStatus,
+  isTradeStatusStale,
+  refreshTradeStatus,
+  buyGate,
+  overBuyLimit,
+  underMinBuy,
+} from '../lib/trade_status.js'
+import { effectiveSubmitDay, confirmDayStr, isCoveredYear, TABLE_YEAR } from '../lib/trade_days.js'
+import { fmtDateStr } from '../lib/date.js'
 
 export default function Detail({ code, from = 'watch' }) {
   /* 首屏：有内置种子就直接出数（秒开），后台再抓真实数据覆盖。
@@ -72,13 +83,25 @@ export default function Detail({ code, from = 'watch' }) {
     () => !!code && loadRealHoldings().some((r) => r.code === code),
     [code, reloadKey],
   )
-  /* 交易工具（费率试算 / 记录模拟买入）**恒显示**。
-      前的逻辑是「持仓基金藏起来」（from==='holding' 或 isHeld 时不显示），
-     指出这正是「买入不开放、人控没打开」——这些是纯本地沙盒操作，
-     不动真钱，没有理由按持仓状态隐藏；藏了用户就失去了控制入口。 */
+  /* 交易工具（费率试算 / 记录模拟买入）恒显示：这些是纯本地沙盒操作、不动真钱，
+     不按持仓状态隐藏，避免用户失去控制入口。 */
   const showTradeTools = true
-  /* 深度分析：持仓基金默认展开；非持仓基金也能手动展开（
-     要求「所有功能都开放」——不把六段式锁死在持仓入口后面）。 */
+  /* 交易状态：申购/赎回状态字段 + 限购额度。缓存按本地日期判新鲜，跨天自动重抓
+     （限购金额与暂停状态每天都会变）。 */
+  const [trade, setTrade] = useState(() => loadTradeStatus(code))
+  useEffect(() => {
+    let alive = true
+    setTrade(loadTradeStatus(code))
+    if (isTradeStatusStale(code)) {
+      refreshTradeStatus(code).then((st) => {
+        if (alive && st) setTrade(st)
+      })
+    }
+    return () => {
+      alive = false
+    }
+  }, [code, reloadKey])
+  /* 深度分析：持仓基金默认展开；非持仓基金手动点一下也能展开 */
   const [deepOpen, setDeepOpen] = useState(false)
   const showDeep = from === 'holding' || isHeld || deepOpen
 
@@ -123,8 +146,8 @@ export default function Detail({ code, from = 'watch' }) {
   const fullSeries = d ? toSeries(d) : []
   const accLast = d && d.accWorth?.length ? d.accWorth[d.accWorth.length - 1].y : null
 
-  /* 数据源异常跳变防护：区间收益 / 回撤 / 波动凡跨越跳变点一律降级。
-     不把「跨口径差值」当收益展示（001594 ：近1年 +226%）。 */
+  /* 数据源异常跳变防护：区间收益 / 下跌 / 波动凡跨越跳变点一律降级。
+     不把「跨口径差值」当收益展示。 */
   const jumps = d ? detectJumps(fullSeries) : []
   const jumpDateSet = new Set(jumps.map((j) => j.date))
   const rangeSafe = (accWorth, days) => {
@@ -226,7 +249,7 @@ export default function Detail({ code, from = 'watch' }) {
   }, [showDeep, d, fullSeries, r1m, r3m, r6m, r1y, vol, dd, holdingCalc, myHolding, portfolioMv, deepNews])
 
   /* 决策纪律线（B 类独有）：规则引擎，不是大模型。
-     数据全部复用上面已算好的分位/趋势/回撤/仓位，不额外发请求。 */
+     数据全部复用上面已算好的位置/趋势/下跌/仓位，不额外发请求。 */
   const decision = useMemo(() => {
     if (!showDeep || !d) return null
     return buildDecision({
@@ -312,7 +335,7 @@ export default function Detail({ code, from = 'watch' }) {
         </div>
         {jumps.length > 0 ? (
           <div className="callout warn" style={{ margin: '0 12px 12px' }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>数据源异常，区间收益与回撤暂不计算</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>数据源异常，区间收益与下跌暂不计算</div>
             {jumps.slice(0, 3).map((j, i) => (
               <div key={i} style={{ fontSize: 'var(--fs-kicker)', lineHeight: 1.6 }}>
                 {j.prevDate} → {j.date} 净值 {j.from} → {j.to}（{j.pct > 0 ? '+' : ''}
@@ -420,10 +443,15 @@ export default function Detail({ code, from = 'watch' }) {
         </div>
       </div>
 
+      <TradeStatusCard st={trade} />
+
       {showTradeTools ? (
         <>
-          <FeeBlock ratePct={d.rate ?? (d.sourceRate ?? 1.5) * PURCHASE_DISCOUNT * 100} nav={nav} />
-          <RecordBuyBlock d={d} />
+          <FeeBlock
+            ratePct={d.rate ?? (d.sourceRate != null ? d.sourceRate * PURCHASE_DISCOUNT : null)}
+            nav={nav}
+          />
+          <RecordBuyBlock d={d} trade={trade} />
         </>
       ) : null}
 
@@ -519,7 +547,7 @@ function FeeBlock({ ratePct, nav }) {
   const [confirmDate, setConfirmDate] = useState(() => dateOffset(-8))
   const [redeemDate, setRedeemDate] = useState(() => dateOffset(0))
 
-  const rateOk = Number.isFinite(ratePct) && ratePct >= 0
+  const rateOk = ratePct != null && Number.isFinite(ratePct) && ratePct >= 0
   const p = rateOk ? calcPurchase(amount, ratePct / 100, 1) : null
   const shares = p && nav > 0 ? p.netAmount / nav : null
   const days = Math.max(0, holdingDays(confirmDate, redeemDate))
@@ -540,15 +568,20 @@ function FeeBlock({ ratePct, nav }) {
             onChange={(e) => setAmount(Number(e.target.value))}
           />
         </label>
-        <div className="stat-grid">
-          <Stat k="实收费率" v={p ? `${(p.rate * 100).toFixed(4)}%` : '—'} />
-          <Stat k="净申购金额" v={p ? `${p.netAmount.toFixed(2)} 元` : '—'} />
-          <Stat k="申购费" v={p ? `${p.fee.toFixed(2)} 元` : '—'} cls="up" />
-          <Stat k="确认份额" v={shares ? `${shares.toFixed(2)} 份` : '—'} />
-        </div>
+        {rateOk ? (
+          <div className="stat-grid">
+            <Stat k="实收费率" v={`${(p.rate * 100).toFixed(4)}%`} />
+            <Stat k="净申购金额" v={`${p.netAmount.toFixed(2)} 元`} />
+            <Stat k="申购费" v={`${p.fee.toFixed(2)} 元`} cls="up" />
+            <Stat k="确认份额" v={shares ? `${shares.toFixed(2)} 份` : '—'} />
+          </div>
+        ) : (
+          <p className="card-note">费率数据缺失，暂不可算。</p>
+        )}
         <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
           外扣法：申购费 = 金额 − 金额 ÷ (1 + 费率)。不是「金额 × 费率」，差的那部分是真金白银。
-          {shares ? '' : ' 缺单位净值或费率时份额无法折算，显示为空。'}
+          {rateOk && !shares ? ' 缺单位净值，份额暂不可算。' : ''}
+          {' 交易日 15:00 后提交顺延到下一交易日。'}
         </p>
       </div>
 
@@ -585,12 +618,25 @@ function FeeBlock({ ratePct, nav }) {
 }
 
 /** 记录模拟买入：按当前单位净值折算份额，写入本机「模拟持仓」 */
-function RecordBuyBlock({ d }) {
+function RecordBuyBlock({ d, trade }) {
   const [amount, setAmount] = useState(10000)
   const [msg, setMsg] = useState(null)
+  // 屏幕常开跨过 15:00 时，提交生效日 / 确认日应随之刷新：每 60s 与窗口聚焦都重算一次
+  const [, forceRefresh] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => forceRefresh((t) => t + 1), 60000)
+    const onFocus = () => forceRefresh((t) => t + 1)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [])
   const last = latestNetWorth(d.netWorth)
   const nav = last ? last.y : null
   const navDate = last ? fmtNavDate(last.x) : null
+  /* 门控看申购状态字段，不推算日历；沙盒推演照常可记，只把状态讲清楚 */
+  const gate = buyGate(trade)
   /* 费率口径：接口的 fund_Rate 已是**折后实收**费率，直接用、不再打渠道折扣
      （二次打折会少算一大截）；拿不到折后费率才回退原始费率，那时走默认折扣 */
   const hasDiscounted = d.rate != null && Number.isFinite(Number(d.rate)) && Number(d.rate) >= 0
@@ -599,6 +645,14 @@ function RecordBuyBlock({ d }) {
   const valid = Number.isFinite(amt) && amt > 0 && nav != null && nav > 0 && ratePct != null && Number.isFinite(ratePct) && ratePct >= 0
   const p = valid ? calcPurchase(amt, ratePct / 100, hasDiscounted ? 1 : PURCHASE_DISCOUNT) : null
   const done = countSimHolding(d.code)
+  /* 15:00 截单：这条记录按生效交易日成交；确认日 = 生效日 + 接口给的确认天数。
+     全程按北京时间推算（见 lib/trade_days.js）。 */
+  const submitDay = effectiveSubmitDay()
+  const confirmDay = confirmDayStr(submitDay, trade?.buyConfirmDays)
+  // 日历只含 2026，生效日或确认日落在表外年份时，推算只是「只排周末」近似，需提示
+  const outOfTable =
+    !isCoveredYear(submitDay) ||
+    (confirmDay != null && !String(confirmDay).startsWith(String(TABLE_YEAR)))
 
   function save() {
     if (!valid || !p) return
@@ -612,6 +666,8 @@ function RecordBuyBlock({ d }) {
       amount: amt,
       fee: p.fee,
       shares: p.netAmount / nav,
+      submit_day: fmtDateStr(submitDay),
+      confirm_day: confirmDay,
       created_at: fmtNavDate(Date.now()),
     })
     setMsg(
@@ -643,7 +699,29 @@ function RecordBuyBlock({ d }) {
           <Stat k="适用费率" v={ratePct != null ? `${ratePct}%（折后实收）` : '—'} />
           <Stat k="申购费（外扣）" v={p ? `${p.fee.toFixed(2)} 元` : '—'} cls="up" />
           <Stat k="确认份额" v={p ? `${(p.netAmount / nav).toFixed(2)} 份` : '—'} />
+          <Stat k="提交生效日" v={fmtDateStr(submitDay)} />
+          <Stat k="预计确认日" v={confirmDay ?? '—'} />
         </div>
+        {outOfTable ? (
+          <p className="card-note" style={{ marginTop: 'var(--space-2)' }}>
+            日历数据仅含 2026，跨年推算仅供参考。
+          </p>
+        ) : null}
+        {gate.ok === false ? (
+          <div className="callout danger" style={{ marginTop: 'var(--space-3)' }}>
+            {gate.text}。下面只作沙盒推演，记录不等于真实买入。
+          </div>
+        ) : null}
+        {gate.state === 'limited' && overBuyLimit(trade, amount) ? (
+          <div className="callout" style={{ marginTop: 'var(--space-3)' }}>
+            金额超过单日上限 {trade.maxBuy.toLocaleString('zh-CN')} 元，仍可记录（仅沙盒推演）。
+          </div>
+        ) : null}
+        {underMinBuy(trade, amount) ? (
+          <div className="callout" style={{ marginTop: 'var(--space-3)' }}>
+            低于起购金额 {trade.minBuy} 元，仍可记录（仅沙盒推演）。
+          </div>
+        ) : null}
         <button className="btn btn-primary btn-block" style={{ marginTop: 'var(--space-3)' }} disabled={!valid} onClick={save}>
           记录到模拟持仓
         </button>

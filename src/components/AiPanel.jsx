@@ -140,7 +140,7 @@ export function LlmSettingsPanel() {
 const QUICK_QUESTIONS = [
   '结合当前数据，这只基金的主要风险是什么？',
   '现在的位置适合加仓、持有还是观察？说明理由。',
-  '用三句话解释它的最大回撤意味着什么。',
+  '用三句话解释它的最深跌意味着什么。',
 ]
 
 function buildSystemPrompt(ctx) {
@@ -159,7 +159,7 @@ function buildSystemPrompt(ctx) {
 
 /**
  * @param {{context?: object, compact?: boolean}} props
- *   context 会作为 system prompt 的数据部分（如基金名称/分位/趋势/回撤/仓位）
+ *   context 会作为 system prompt 的数据部分（如基金名称/位置/趋势/下跌/仓位）
  */
 export function AiChatPanel({ context = null }) {
   const [msgs, setMsgs] = useState([])

@@ -8,21 +8,16 @@
 
 import { useEffect, useState } from 'react'
 import { goalReport, goalsWithProjection, upsertGoal, deleteGoal } from '../lib/goal.js'
+import { plusYearsStr, todayStr } from '../lib/date.js'
 
 const fmtMoney = (v) =>
   '¥' + Number(v || 0).toLocaleString('zh-CN', { maximumFractionDigits: 0 })
-
-function plusYears(n) {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() + n)
-  return d.toISOString().slice(0, 10)
-}
 
 const emptyForm = () => ({
   id: null,
   name: '',
   target_amount: '',
-  target_date: plusYears(5),
+  target_date: plusYearsStr(5),
   annual_return: '6',
   monthly_saving: '',
   initial_amount: '',

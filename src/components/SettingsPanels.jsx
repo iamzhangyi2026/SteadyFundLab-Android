@@ -147,7 +147,7 @@ export function AlertPanel({ holdings = [] }) {
         <div className="fund-row fund-row-static fund-row-noline" style={{ marginTop: 'var(--space-3)' }}>
           <div className="fund-main">
             <div className="fund-name fund-name-normal">估值洼地提醒</div>
-            <div className="fund-meta">累计净值历史分位低于阈值</div>
+            <div className="fund-meta">历史位置低于阈值</div>
           </div>
           <button
             className={rules.undervaluedEnabled ? 'switch on' : 'switch'}
@@ -157,7 +157,7 @@ export function AlertPanel({ holdings = [] }) {
         </div>
         {rules.undervaluedEnabled ? (
           <label className="field">
-            <span>分位阈值（%）</span>
+            <span>位置阈值（%）</span>
             <input
               type="number"
               inputMode="decimal"
@@ -313,7 +313,7 @@ function dateStamp() {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`
 }
 
-/* ---------------- 数据预抓取（M1 后台分层抓） ---------------- */
+/* ---------------- 数据预抓取（后台分层抓） ---------------- */
 export function PrefetchPanel() {
   const [prefs, setPrefs] = useState(loadPrefetchPrefs)
   const [busy, setBusy] = useState(false)

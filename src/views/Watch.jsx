@@ -1,17 +1,14 @@
 /**
  * 自选观察页。
- *
- *  ：
- *   1. 自选也要能添加 / 删除（原来是写死的 4 只常量）
- *   2. 把「算法添加」与「人工添加」分开标注
- *   3. 每行补上 编辑 / 加仓 / 定投 / 删除 按钮
- *
+ * 自选条目可增删改，逐条标注来源（算法 / 人工）；查找走全市场搜索（lib/fundSearch.js）。
  * 数据源：lib/watchlist.js（localStorage，source 字段区分 algo / manual）
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchFund, latestNetWorth, dayChange, fmtNavDate } from '../lib/eastmoney.js'
 import { seedFund } from '../lib/seed.js'
+import { cachedToWorth } from '../lib/navCache.js'
+import { searchFunds } from '../lib/fundSearch.js'
 import RowSkeleton from '../components/RowSkeleton.jsx'
 import { usePullRefresh } from '../lib/usePullRefresh.js'
 import { loadWatch, addWatch, removeWatch, updateWatch, recomputeAlgo, needsAlgoCompute } from '../lib/watchlist.js'
@@ -20,11 +17,11 @@ import { QuickBuyForm, QuickDingtouForm } from '../components/QuickActions.jsx'
 export default function Watch({ onOpen, onDiscover, onSimLedger }) {
   /* 自选列表（含 source：algo 算法添加 / manual 人工添加） */
   const [watch, setWatch] = useState(() => loadWatch())
-  /* 首屏：自选池都有内置种子，直接出数（秒开），后台再刷新 */
+  /* 首屏：先用本地已抓过的净值出数（真数据、随自选变化），没有再吃内置种子，后台再刷新 */
   const [state, setState] = useState(() => {
     const items = loadWatch()
       .map((w) => {
-        const d = seedFund(w.code)
+        const d = cachedToWorth(w.code) || seedFund(w.code)
         return d ? { ...w, d, error: null } : null
       })
       .filter(Boolean)
@@ -54,6 +51,58 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
   const [newTag, setNewTag] = useState('')
   const [addMsg, setAddMsg] = useState(null)
   const [addBusy, setAddBusy] = useState(false)
+
+  /* 查找 = 全市场搜索：q 非空时进入搜索模式，结果替代自选列表显示 */
+  const [query, setQuery] = useState('')
+  const q = query.trim()
+  const [search, setSearch] = useState({ status: 'idle', items: [], error: '' })
+  /* 后到请求先回来的守卫：只认最新一次搜索的结果 */
+  const searchSeq = useRef(0)
+  /* 本次会话里从搜索结果加过的 code（切回列表前保持「已自选」态） */
+  const [addedCodes, setAddedCodes] = useState(() => new Set())
+  const inWatch = useMemo(() => new Set(watch.map((w) => w.code)), [watch])
+
+  /* 输入防抖 350ms 后搜索；卸载或又输入了新词则丢弃旧结果 */
+  const hadQuery = useRef(false)
+  useEffect(() => {
+    const key = q
+    if (!key) {
+      /* 搜索过再清空：刷新一次列表，让搜索里新加的自选立刻可见 */
+      if (hadQuery.current) {
+        hadQuery.current = false
+        load()
+      }
+      searchSeq.current += 1
+      setSearch({ status: 'idle', items: [], error: '' })
+      return
+    }
+    hadQuery.current = true
+    const seq = (searchSeq.current += 1)
+    const timer = setTimeout(async () => {
+      if (!mountedRef.current) return
+      setSearch({ status: 'loading', items: [], error: '' })
+      try {
+        const items = await searchFunds(key, { limit: 10 })
+        if (seq !== searchSeq.current || !mountedRef.current) return
+        setSearch({ status: 'ok', items, error: '' })
+      } catch (e) {
+        if (seq !== searchSeq.current || !mountedRef.current) return
+        setSearch({ status: 'error', items: [], error: e?.message || '搜索失败' })
+      }
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [q])
+
+  /** 从搜索结果加入自选；本机存储失败要明确告知，不静默 */
+  function addFromSearch(item) {
+    const r = addWatch({ code: item.code, name: item.name, tag: '', source: 'manual' })
+    if (r.ok || r.reason === 'exists') {
+      setAddedCodes((prev) => new Set(prev).add(item.code))
+      setWatch(loadWatch())
+    } else {
+      window.alert('添加失败：本机存储不可用')
+    }
+  }
 
   // 并发抓观察池：每只基金独立 fetchFund，成功带数据、失败带 error，互不影响
   async function fetchWatchItems(list) {
@@ -182,7 +231,7 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
   return (
     <div className="watch-page">
       <section className="watch-welcome">
-        <div className="watch-eyebrow"><span className="live-dot" /> FUND DESK <span>·</span> {date}</div>
+        <div className="watch-eyebrow"><span className="live-dot" /> 自选 <span>·</span> {date}</div>
         <h1>把每一次观察，<br /><em>变成有据可依。</em></h1>
         <p>净值、费率与持仓线索，一屏看清。</p>
       </section>
@@ -201,11 +250,14 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
             <span className="mood-down">↓ {state.status === 'loading' ? '—' : summary.down}</span>
           </div>
         </div>
-        <div className="market-foot"><span className="market-foot-mark">i</span>按基金公布净值展示；QDII 可能存在披露时差</div>
+        <div className="market-foot"><span className="market-foot-mark">i</span>按基金公布净值展示；投资海外的基金公布时间可能晚一两天</div>
       </section>
 
       <div className="watch-section-head">
-        <div><span className="section-overline">YOUR WATCHLIST</span><h2>关注列表</h2></div>
+        <div>
+          
+          <h2>{q ? '搜索结果' : '关注列表'}</h2>
+        </div>
         <div className="watch-head-actions">
           <button className="text-action" onClick={() => { setAdding((v) => !v); setAddMsg(null) }}>
             {adding ? '收起' : '＋ 添加'}
@@ -253,14 +305,65 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
         </div>
       ) : null}
 
-      <section className="watch-list-card">
+      <div className="watch-find">
+        <span className="watch-find-icon" aria-hidden="true">⌕</span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜全市场基金：名称 / 代码"
+          aria-label="搜索全市场基金"
+        />
+        {q ? (
+          <>
+            {search.status === 'ok' ? <span className="watch-find-count">{search.items.length} 只</span> : null}
+            <button type="button" className="watch-find-clear" onClick={() => setQuery('')}>清空</button>
+          </>
+        ) : null}
+      </div>
+
+      {q ? (
+        <section className="watch-list-card" aria-label="全市场搜索结果">
+          {search.status === 'loading' ? (
+            <div className="search-hint">正在全市场搜索「{q}」…</div>
+          ) : search.status === 'error' ? (
+            <div className="search-hint is-error">搜索失败：{search.error}。请检查网络后重试</div>
+          ) : search.items.length === 0 ? (
+            <div className="search-hint">全市场没找到「{q}」相关的基金，换个关键词试试</div>
+          ) : (
+            search.items.map((it) => {
+              const added = inWatch.has(it.code) || addedCodes.has(it.code)
+              return (
+                <div className="watch-search-row" key={it.code}>
+                  <div className="watch-search-main">
+                    <strong>{it.name}</strong>
+                    <small>
+                      <span className="fund-code">{it.code}</span><i />{it.type}
+                      {it.nav ? <><i />净值 {it.nav.toFixed(4)}{it.navDate ? `（${it.navDate}）` : ''}</> : null}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className={'btn btn-sm ' + (added ? 'is-added' : 'btn-primary')}
+                    disabled={added}
+                    onClick={() => addFromSearch(it)}
+                  >
+                    {added ? '已自选' : '＋ 自选'}
+                  </button>
+                </div>
+              )
+            })
+          )}
+        </section>
+      ) : (
+        <section className="watch-list-card">
         {state.status === 'loading' ? (
           watch.length === 0 ? (
             <div className="empty">
               <div className="empty-title">{algoBusy ? '算法分析全市场中…' : algoError ? '算法分析暂不可用' : '正在加载'}</div>
               <div className="empty-note">
                 {algoBusy
-                  ? '按「近1年>0、分位<50%、回撤<50%」三轨筛选，达标的基金会自动列出'
+                  ? '按「近1年>0、位置<50%、下跌<50%」三轨筛选，达标的基金会自动列出'
                   : algoError
                     ? '请检查网络后点右上角「重算」重试'
                     : '请稍候'}
@@ -272,7 +375,7 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
         ) : state.items.length === 0 ? (
           <div className="empty">
             <div className="empty-title">自选是空的</div>
-            <div className="empty-note">点右上角「＋ 添加」，输入基金代码就能加入观察</div>
+            <div className="empty-note">点上方搜索框搜全市场基金，或点右上角「＋ 添加」输入代码</div>
           </div>
         ) : (
           state.items.map((item) => (
@@ -296,16 +399,17 @@ export default function Watch({ onOpen, onDiscover, onSimLedger }) {
           ))
         )}
       </section>
-      {state.status === 'ok' && summary.valid < watch.length && (
+      )}
+      {state.status === 'ok' && summary.valid < watch.length && !q && (
         <div className="data-note"><span>!</span>部分基金暂未获取到数据；缺失值保持空白，不做推测。</div>
       )}
 
       <div className="watch-section-head tools-heading">
-        <div><span className="section-overline">NEXT STEP</span><h2>继续探索</h2></div>
+        <div><h2>继续探索</h2></div>
       </div>
       <section className="quick-actions">
         <button className="quick-card discover-action" onClick={onDiscover}>
-          <span className="quick-icon">⌕</span><span className="quick-title">发现机会</span><span className="quick-caption">查看历史分位与趋势</span><span className="quick-arrow">↗</span>
+          <span className="quick-icon">⌕</span><span className="quick-title">发现机会</span><span className="quick-caption">查看历史位置与趋势</span><span className="quick-arrow">↗</span>
         </button>
         <button className="quick-card ledger-action" onClick={onSimLedger}>
           <span className="quick-icon">▤</span><span className="quick-title">模拟账本</span><span className="quick-caption">记录策略推演与交易</span><span className="quick-arrow">↗</span>
@@ -374,7 +478,7 @@ function WatchRow({
         {source === 'manual' ? (
           <button className="btn btn-sm" onClick={onDelete}>删除</button>
         ) : (
-          <button className="btn btn-sm" disabled title="算法自动维护，点「更新」重算">删除</button>
+          <button className="btn btn-sm" disabled title="算法自动维护，点「重算」刷新">删除</button>
         )}
       </div>
 

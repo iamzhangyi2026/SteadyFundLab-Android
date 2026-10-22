@@ -3,7 +3,7 @@
 // 持仓行要显示：估算净值 / 持有额 / 持有收益 / 持有收益率 / 涨跌幅 / 估算收益 / 更新时间。
 // 其中「净值、涨跌幅」来自东财批量接口；「估算净值、估算收益」来自跟踪指数的实时行情。
 //
-// ⚠️ 基金实时估值已全行业下线（天天基金  下线、腾讯估值字段恒 0）：
+// ⚠️ 基金实时估值已全行业下线（天天基金已下线、腾讯估值字段恒 0）：
 //   指数基金 ≈ 95% 仓位跟着跟踪指数走，所以用**跟踪指数的实时涨跌幅**近似估算；
 //   主动型基金（INDEXCODE 为 '--'）没有可跟踪的指数 → 估算净值/估算收益返回 null，
 //   UI 显示「—」。**不编数**。
@@ -324,7 +324,7 @@ export async function fetchHoldingsLive(codes, { force = false } = {}) {
     const idx = idxByFund[code] || null
     const q = idx ? quoteMap[idx.code] || null : null
     const w = !idx && stockLists[code]?.length ? weightedPct(stockLists[code], stockQuotes) : null
-    // 重仓股覆盖的仓位太少（<30%，如 QDII 或持仓拿不全）时，不足以代表整只基金，
+    // 重仓股覆盖的仓位太少（<30%，如投资海外的基金，或持仓拿不全）时，不足以代表整只基金，
     // 宁可不给实时估算，退回净值日涨跌
     const wPct = w && w.weight >= 30 ? w.pct : null
 

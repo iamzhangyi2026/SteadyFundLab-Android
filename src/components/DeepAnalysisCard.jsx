@@ -1,8 +1,7 @@
 // src/components/DeepAnalysisCard.jsx · 六段式深度分析卡
 // ------------------------------------------------------------
 // 由 lib/deep_analysis.js 的代码规则生成（不调大模型），本组件只负责渲染：
-// PC 的宽表格改成行式列表适配窄屏，信息项不减少；拿不到的字段如实显示「—」。
-// 只挂真实持仓入口（已经买了的基金才需要「我该怎么看它」）。
+// 宽表格在窄屏改行式列表，信息项不减少；拿不到的字段如实显示「—」。
 
 const SECTION_TITLE = { margin: 'var(--space-5) var(--space-1) var(--space-2)' }
 
@@ -32,7 +31,6 @@ export default function DeepAnalysisCard({ report }) {
     <div className="analysis-card">
       <div className="watch-section-head">
         <div>
-          <span className="section-overline">DEEP ANALYSIS</span>
           <h2>深度分析</h2>
         </div>
         <span className="text-action" style={{ color: '#9aa298' }}>

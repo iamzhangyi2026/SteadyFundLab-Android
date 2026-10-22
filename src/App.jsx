@@ -6,8 +6,7 @@
  *   2. 页签路由（自选 / 发现 / 持仓 / 我的）+ 基金详情下钻
  *   3. 红点的亮与灭（生命周期定义见 lib/notify.js）
  *
- * 热更新与统计上报已移除（ 决定）：App 只做本地功能，
- * 不检查版本、不联网上报任何设备/使用数据。
+ * 全部功能都在本机：不检查版本、不联网上报任何设备/使用数据。
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -42,12 +41,9 @@ import Compare from './views/Compare.jsx'
 import Market from './views/Market.jsx'
 import Screener from './views/Screener.jsx'
 
-/* 更新与上报的地址已随热更新/统计代码一并移除（）。
-   App 不再检查版本、不再上报设备数据。 */
-
 /* 界面版本号（显示在标题栏与「我的」页）。改版本时与 build.gradle 的
-   versionName 一起改 —— 这是纯展示常量，不参与任何更新判断。 */
-const APP_VERSION = '2.17'
+   versionName 一起改。 */
+const APP_VERSION = '2.5'
 
 const HEADS = {
   watch: { t: '基金沙盒', s: '' },
@@ -138,7 +134,7 @@ export default function App() {
     })
   }, [])
 
-  /* 后台分层预抓取（M1）：启动 8 秒后检查条件（开关 / WiFi / 充电 / 6 小时间隔），
+  /* 后台分层预抓取：启动 8 秒后检查条件（开关 / WiFi / 充电 / 6 小时间隔），
      满足才跑，不阻塞首屏。结果写 navCache，页面下次打开直接有历史数据。 */
   useEffect(() => {
     if (!agreed) return
@@ -148,7 +144,7 @@ export default function App() {
     return () => clearTimeout(t)
   }, [agreed])
 
-  // 点「有新版本」横幅 → 直接跳「我的」页，省得用户自己找「检查更新」
+  // 点通知进来 → 跳到对应页签
   useEffect(() => {
     if (!agreed) return
     let remove = () => {}
@@ -175,9 +171,7 @@ export default function App() {
     }
   }, [agreed])
 
-  // 红点的另一条灭法：打开过 App 但没点进去，退出时也算「过了」。
-  // 「打开APP之后没动红点，在退出程序之后红点也消失，
-  //             直到下一次新通知产生的横幅红点。」
+  // 红点的另一条灭法：打开过 App 但没点进去，退出时也算已经看过
   useEffect(() => {
     if (!agreed) return
     let remove = () => {}
@@ -261,7 +255,7 @@ export default function App() {
   const SUB_HEADS = {
     compare: { t: '多基金对比', s: '并排看区间与风险' },
     market: { t: '大盘指数', s: '五大指数 · 实时' },
-    screener: { t: '全市场筛选', s: '排行 + 分位/回撤三轨' },
+    screener: { t: '全市场筛选', s: '排行 + 位置/下跌三轨' },
   }
   const goBack = detailCode
     ? () => setDetailCode(null)
@@ -316,8 +310,6 @@ export default function App() {
           <span className="pull-spinner" />
           <span className="pull-text">下拉刷新</span>
         </div>
-        {/* 有新版本一律走系统横幅通知（见 notify.js），不在 App 内堆提示条 */}
-
         {detailCode ? (
           <Detail code={detailCode} from={detailFrom} />
         ) : simOpen ? (

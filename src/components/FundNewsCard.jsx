@@ -42,7 +42,6 @@ export default function FundNewsCard({ code, name }) {
     <div className="news-card">
       <div className="watch-section-head">
         <div>
-          <span className="section-overline">NEWS &amp; NOTICE</span>
           <h2>资讯</h2>
         </div>
         {state.cached ? <span className="text-action" style={{ color: '#9aa298' }}>24 小时内已抓取</span> : null}

@@ -6,11 +6,11 @@
 
 const DAY = 86400000
 
-/* 数据源异常跳变防护（）：001594 在东财源头 
-   净值 1.004 → 3.2275（+221.5%），累计净值同步跳变。口径明显异于
-   正常公募（单日涨跌停 ±10% 传导），凡区间跨越该点的收益类指标
+/* 数据源会偶发把净值口径整个换掉（单日跳到三倍、累计净值同步跳变），
+   明显异于正常公募（单日涨跌停 ±10% 传导）。凡区间跨越该点的收益类指标
    一律降级，不把失真数字当结果展示。详见 lib/navSanitize.js。 */
 import { detectJumps } from './navSanitize.js'
+import { toLocalDateStr } from './date.js'
 
 /** 收集参与计算的各基金在 [fromDate, toDate] 窗口内的跳变点 */
 function collectJumps(histByCode, codes, fromDate, toDate) {
@@ -167,7 +167,7 @@ export function benchmarkCompare(holdings, histByCode, benchmark, benchmarkName 
     dates[dates.length - 1],
   )
   /* 区间跨越异常跳变：收益百分比一律置空，只留走势与跳变说明。
-     硬算会得到 +226% 这类失真数（001594 ）。 */
+     硬算会得到 +226% 这类失真数。 */
   const bad = untrusted.length > 0
   return {
     series,
@@ -220,7 +220,7 @@ export function portfolioRisk(holdings, exposureByCode = {}) {
     .map(([industry, weight]) => ({ industry, weight: +weight.toFixed(2) }))
     .sort((a, b) => b.weight - a.weight)
 
-  // HHI = Σ(单只占比²)，越接近 1 越集中；等权 4 只 = 0.25
+  // 集中程度 = Σ(单只占比²)，越接近 1 越集中；等权 4 只 = 0.25
   const hhi = +positions.reduce((s, p) => s + ((p.pct ?? 0) / 100) ** 2, 0).toFixed(4)
 
   return {
@@ -257,11 +257,10 @@ export function rebalancePlan(holdings, targets = {}) {
   return { total: risk.total, rows, totalTarget: +totalTarget.toFixed(2) }
 }
 
-/* 目标规划的完整版在 lib/goal.js（多目标 / 目标日期 / 增删改持久化）。
-   这里原有一个单目标复利计算器 goalProjection，v13 重做后已无调用方，已删除。 */
+/* 目标规划的完整版在 lib/goal.js（多目标 / 目标日期 / 增删改持久化） */
 
 /**
- * 时间加权收益率（TWR，近似）
+ * 持有以来收益率（近似）
  * ------------------------------------------------------------
  * 口径说明（诚实）：
  *   - 单基金 TWR = 从「导入日」到最新日的**累计净值**涨幅（剔除分红跳空）；
@@ -280,15 +279,22 @@ export function portfolioTwr(holdings, histByCode = {}) {
   for (const r of holdings || []) {
     const hist = r.code ? histByCode[r.code] : null
     if (!Array.isArray(hist) || hist.length < 2) continue
+    /* 字段名必须是 nav：detectJumps 按 navSanitize.js 的约定读 .nav。
+       值取累计净值——分红除息不会让它跳空，不会被误判成数据源异常。 */
     const acc = hist
-      .map((p) => ({ date: p.date, v: p.acc_nav != null ? p.acc_nav : p.nav }))
-      .filter((p) => p.v != null && p.v > 0)
+      .map((p) => {
+        const v = p.acc_nav != null ? p.acc_nav : p.nav
+        return v != null && v > 0 ? { date: p.date, nav: v } : null
+      })
+      .filter(Boolean)
     if (acc.length < 2) continue
 
     /* 起始日优先级：导入时间 → 导入时净值日期。
        ⚠️ 两者都没有就不算这只基金：退回净值历史起点会把「成立以来涨幅」
-       冒充成「持有以来 TWR」（ ：2010-08-20 起 +106.73%）。 */
-    const since = (r.created_at || r.nav_date_at_import || '').slice(0, 10)
+       冒充成「持有以来 TWR」。 */
+    const since = r.created_at
+      ? toLocalDateStr(r.created_at)
+      : (r.nav_date_at_import || '').slice(0, 10)
     if (!since) {
       missing++
       continue
@@ -299,10 +305,10 @@ export function portfolioTwr(holdings, histByCode = {}) {
       continue
     }
     const last = acc[acc.length - 1]
-    if (!(start.v > 0)) continue
+    if (!(start.nav > 0)) continue
 
     /* 起始→结束跨越异常跳变：这只不参与加权。
-       不拿跨口径的区间涨幅冒充持有收益（001594  +226%）。 */
+       不拿跨口径的区间涨幅冒充持有收益。 */
     const startIdx = acc.indexOf(start)
     if (detectJumps(acc.slice(startIdx)).length > 0) {
       skippedJump++
@@ -316,7 +322,7 @@ export function portfolioTwr(holdings, histByCode = {}) {
     rows.push({
       code: r.code,
       name: r.name || r.code,
-      ret: +(((last.v / start.v) - 1) * 100).toFixed(2),
+      ret: +(((last.nav / start.nav) - 1) * 100).toFixed(2),
       mv,
       startDate: start.date,
     })

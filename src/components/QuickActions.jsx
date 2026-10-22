@@ -7,8 +7,7 @@
 import { useState } from 'react'
 import { upsertPlan } from '../lib/dingtou_plan.js'
 import { appendRealHolding, loadRealHoldings } from '../lib/realLedger.js'
-
-const today = () => new Date().toISOString().slice(0, 10)
+import { todayStr } from '../lib/date.js'
 
 /**
  * 快速建定投计划（预填基金）。
@@ -19,7 +18,7 @@ export function QuickDingtouForm({ code, name, onSaved }) {
   const [frequency, setFrequency] = useState('monthly')
   const [dayOfMonth, setDayOfMonth] = useState('1')
   const [weekday, setWeekday] = useState('1')
-  const [startDate, setStartDate] = useState(today())
+  const [startDate, setStartDate] = useState(todayStr())
   const [msg, setMsg] = useState(null)
 
   const amtOk = Number(amount) > 0

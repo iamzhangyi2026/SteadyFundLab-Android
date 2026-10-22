@@ -6,8 +6,7 @@
  *   ② 通知设置 / 隐私政策 / 关于
  *   ③ 显示（深色）/ 预警 / 定投 / 再平衡 / 目标 / AI 设置 / 导入导出
  *
- * ⚠️ 热更新与统计上报已移除（）：本页不再有「界面更新」「安装包」
- *    两个更新入口，也不再联网检查版本。版本号仅作展示。
+ * 本页不联网检查版本，版本号仅作展示。
  */
 
 import { useEffect, useState } from 'react'
@@ -32,14 +31,14 @@ import { fromRealRow, decorate } from '../lib/holdingsModel.js'
 
 /* 界面版本（纯展示，不参与任何更新判断）。改版本时与 build.gradle 的
    versionName 一起改。 */
-const APP_VERSION = '2.17'
+const APP_VERSION = '2.5'
 
 const NOTIFY_PREFS_KEY = 'notify_prefs'
 
 /* 这里只放用户真正需要选择的提醒类型。 */
 const NOTIFY_ITEMS = [
   { key: 'priceMove', label: '基金涨跌提醒', desc: '自选基金单日涨跌超过设定幅度时提醒' },
-  { key: 'undervalued', label: '估值洼地提醒', desc: '关注的基金跌进历史低分位时提醒' },
+  { key: 'undervalued', label: '估值洼地提醒', desc: '关注的基金跌进历史低位置时提醒' },
 ]
 
 function loadPrefs() {
@@ -140,10 +139,7 @@ export default function Me() {
     return <About onBack={() => setShowAbout(false)} />
   }
 
-  /* 通知权限引导弹窗。
-     ⚠️ 这一段原先漏了 —— showNotifyGate 只被 set 过、从未被读取渲染，
-        表现是「点『开启』按钮毫无反应」。补齐后才走通：
-        点「开启」→ 弹本说明窗 → 用户点「开启」→ 才调系统权限框。 */
+  /* 通知权限引导弹窗：点「开启」先弹本说明窗，用户确认后才调系统权限框 */
   if (showNotifyGate) {
     return (
       <NotifyGate
@@ -249,7 +245,7 @@ export default function Me() {
         <ThemeRow />
       </div>
 
-      {/* ---------------- 数据预抓取（M1） ---------------- */}
+      {/* ---------------- 数据预抓取 ---------------- */}
       <PrefetchPanel />
 
       {/* ---------------- 预警 ---------------- */}
@@ -301,7 +297,7 @@ export default function Me() {
       <div className="card">
         <div className="callout warn" style={{ lineHeight: 1.7 }}>
           <strong>免责声明</strong>：本 App 提供的基金数据来自公开接口，费率试算、
-          分位统计等功能<strong>仅用于学习与策略验证</strong>，
+          位置统计等功能<strong>仅用于学习与策略验证</strong>，
           不构成任何投资建议。据此操作，风险自负。
         </div>
       </div>

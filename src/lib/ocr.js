@@ -196,7 +196,7 @@ function looksLikeFundName(line) {
 export function parseHoldingsFromText(text) {
   /* OCR 噪声规范化：Tesseract 常在数字内部插空格——
      「1, 000. 00」「+12. 34%」「15000. 00」都会让连续数字正则匹配错位
-     （份额 1000 被抓成 1、收益率 12.34 被抓成 34， ）。
+     （份额 1000 被抓成 1、收益率 12.34 被抓成 34）。
      先去掉了逗号/小数点两侧的空格，再进入原有解析。 */
   const normNums = (s) => s.replace(/(\d)\s*([,，.．])\s*(\d)/g, '$1$2$3')
   const lines = String(text || '')
@@ -245,7 +245,7 @@ export function parseHoldingsFromText(text) {
   }
   // 金额：¥1,234.56 / 持有金额 1000.00 / 市值 / 成本；都抓不到时走收益率自洽兜底
   // 货币符兼容 Y/y（「¥」常被 OCR 认成字母 Y）与 # / 羊 / ￥ 全角等噪声
-  // （ ：Tesseract 把「¥」稳定识别成「#」，不兼容就整行金额丢失）
+  // Tesseract 会把「¥」稳定识别成「#」，不兼容就整行金额丢失
   // 标签与数字之间也允许夹一个货币符
   const grabAmount = (l) =>
     num(l.match(/[¥￥Yy#羊□]\s*(\d+(?:,\d{3})*(?:\.\d+)?)/)?.[1])

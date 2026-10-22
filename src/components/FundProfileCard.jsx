@@ -1,8 +1,8 @@
 // src/components/FundProfileCard.jsx · 基金档案（C8）
 // ------------------------------------------------------------
-// 基金经理 / 评级 / 风格箱。数据来自 fund_profile.js（24h 缓存）。
+// 基金经理 / 评级 / 投资风格。数据来自 fund_profile.js（24h 缓存）。
 // 取不到的字段如实显示「暂无」，不编造姓名或星级。
-// 风格箱公开接口没有可靠字段，固定标注「未提供」。
+// 投资风格公开接口没有可靠字段，固定标注「未提供」。
 
 import { useEffect, useState } from 'react'
 import { fetchFundProfile } from '../lib/fund_profile.js'
@@ -61,7 +61,7 @@ export default function FundProfileCard({ code }) {
         </span>
       </div>
       <div className="da-row">
-        <span className="da-row-k">风格箱</span>
+        <span className="da-row-k">投资风格</span>
         <span className="da-row-v">
           <b>未提供</b>
           <small>公开接口无可靠的「大盘/中小盘 × 价值/成长」字段，不猜</small>

@@ -33,11 +33,8 @@ const fmt2 = (n) => {
 const pnlCls = (n) => (n == null || n === 0 ? 'flat' : n > 0 ? 'up' : 'down')
 const signed = (n, d = 2) => `${n > 0 ? '+' : ''}${n.toFixed(d)}`
 
-/* 刷新节奏：交易时段 3 分钟，其余 5 分钟（非交易时段净值不动，少发加密请求）。
+/* 刷新节奏：交易与非交易统一 3 分钟。
    节假日没有日历数据，按工作日近似（假日多刷几次，无害）。 */
-/* ：持仓每 3-5 分钟抓一次、实时更新与实时估算。
-   交易/非交易统一取 3 分钟（区间内更实时的一端）；
-   每次刷新发 2 个请求（批量净值 + 指数行情），回前台再强制补刷一次。 */
 const TRADING_REFRESH_MS = 3 * 60 * 1000
 const IDLE_REFRESH_MS = 3 * 60 * 1000
 
@@ -74,7 +71,7 @@ export default function RealHoldingsPanel({
   const [internalKey, setInternalKey] = useState(0)
 
   /* 打开就刷一次，之后自动刷：
-       - 每 3 分钟一次（ 3-5 分钟实时刷新，交易与非交易统一 3 分钟）
+       - 每 3 分钟一次
        - 回到前台立刻补一次（后台时 WebView 的定时器会被系统挂起，回来必须重拉）
      一次刷新只发 2 个请求：批量净值 1 个 + 指数行情 1 个（基金→指数的映射有内存缓存）。 */
   useEffect(() => {
@@ -130,7 +127,7 @@ export default function RealHoldingsPanel({
       timer = setInterval(() => {
         /* 定时刷新必须 force=true 绕过缓存：
            净值缓存 TTL 是 5 分钟，而定时器 3 分钟 —— 不绕过的话每轮都命中缓存，
-           实际变成 5 分钟才真抓一次，界面看着「不刷新」（ 抓到）。 */
+           实际变成 5 分钟才真抓一次，界面看着「不刷新」。 */
         load(false, true)
         // 跨进/跨出交易时段时换节奏
         if ((isTradingTime() ? TRADING_REFRESH_MS : IDLE_REFRESH_MS) !== ms) schedule()
@@ -191,6 +188,8 @@ export default function RealHoldingsPanel({
   const cost = sums.reduce((s, c) => s + (c.cost ?? 0), 0)
   const pnl = mv - cost
   const pnlPct = cost ? (pnl / cost) * 100 : null
+  /* 有基金算不出市值时，总数只会偏小 —— 单独标出来，不让残缺值被当成全貌 */
+  const mvMissing = sums.some((c) => c.mv == null)
   // 今日估算收益：只要有一只算不出，就不给总数
   const estAll = loaded.length > 0 && sums.every((c) => c.estPnl != null)
   const estPnl = estAll ? sums.reduce((s, c) => s + c.estPnl, 0) : null
@@ -266,7 +265,7 @@ export default function RealHoldingsPanel({
     <div className="rh-panel">
       <div className="watch-section-head">
         <div>
-          <span className="section-overline">REAL PORTFOLIO</span>
+          
           <h2>真实持仓</h2>
         </div>
         {showImportCta && !empty ? (
@@ -292,7 +291,10 @@ export default function RealHoldingsPanel({
             <div className="rh-top">
               <div>
                 <div className="rh-label">总市值（元）</div>
-                <div className="rh-num">{loading ? '—' : fmt2(mv)}</div>
+                <div className="rh-num">
+                  {loading ? '—' : fmt2(mv)}
+                  {!loading && mvMissing ? <em className="rh-flag">部分缺净值</em> : null}
+                </div>
               </div>
               <div className="rh-pnl">
                 <span>持仓收益</span>

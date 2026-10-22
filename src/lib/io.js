@@ -67,8 +67,7 @@ export function simHoldingsCsv() {
 /**
  * 导出文本文件（CSV）。
  *
- * ⚠️  （ 20 Pro / Android 16）：WebView 里
- * `a[download].click()` 不会触发系统下载——提示「已生成」但文件根本没落盘。
+ * WebView 里 `a[download].click()` 不会触发系统下载——提示「已生成」但文件根本没落盘。
  * 原生环境改走 Capacitor Filesystem 写文件 + Share 调起系统分享面板，
  * 由用户选保存位置（微信 / 邮件 / 云盘 / 文件管理器），导出真正可用。
  *
@@ -155,7 +154,7 @@ export function parseCsv(text) {
 }
 
 const numOrNull = (v) => {
-  // 先剥掉千分位逗号和数字内部空格（Excel / 支付宝导出的 CSV 很常见）：
+  // 先剥掉千位置逗号和数字内部空格（Excel / 支付宝导出的 CSV 很常见）：
   // 否则 parseFloat("1,234.56") 只会得到 1，而 Number.isFinite(1) 为真，
   // 于是金额被按 1 元静默写进真实账本，用户完全看不出错了。
   const s = String(v ?? '').trim().replace(/[,\s]/g, '')

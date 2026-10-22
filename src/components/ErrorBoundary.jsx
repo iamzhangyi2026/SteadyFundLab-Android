@@ -1,8 +1,7 @@
 // src/components/ErrorBoundary.jsx · 渲染错误兜底
 // ------------------------------------------------------------
 // 作用：React 渲染一旦抛错，不让整页白屏，而是显示可操作的错误页。
-// 背景（ 教训）：详情页访问种子数据缺失字段抛 TypeError，
-// 整棵树 unmount → 白屏，用户看到一片空白、无法恢复，只能杀进程。
+// 技术细节只进 logcat（componentDidCatch 里的 console.error），不铺到界面上。
 //
 // 边界：拦「渲染/生命周期」错误，不拦异步回调（那些由各自的 catch 管）。
 
@@ -20,7 +19,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     this.setState({ info })
-    // 留着排查： logcat 里能看到堆栈
+    // 留着排查：logcat 里能看到堆栈
     console.error('[ErrorBoundary]', error?.message || error, info?.componentStack || '')
   }
 
@@ -32,7 +31,7 @@ export default class ErrorBoundary extends Component {
   }
 
   render() {
-    const { error, info, remountKey } = this.state
+    const { error, remountKey } = this.state
     if (!error) return <Fragment key={remountKey}>{this.props.children}</Fragment>
 
     return (
@@ -40,17 +39,7 @@ export default class ErrorBoundary extends Component {
         <div className="gate-card">
           <div className="gate-head">
             <div className="gate-title">页面出错了</div>
-            <div className="gate-sub">这个问题已记录，重启 App 通常可以恢复</div>
-          </div>
-          <div className="gate-body">
-            <p className="gate-p">
-              错误原因：{String(error?.message || error).slice(0, 120)}
-            </p>
-            {info?.componentStack ? (
-              <p className="card-note" style={{ fontSize: 11, opacity: 0.7 }}>
-                {String(info.componentStack).slice(0, 300)}
-              </p>
-            ) : null}
+            <div className="gate-sub">点「重试」再来一次；还不行就重新加载 App</div>
           </div>
           <div className="gate-actions">
             <button className="btn btn-primary btn-block" onClick={this.reset}>

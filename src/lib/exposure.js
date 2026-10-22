@@ -54,7 +54,7 @@ async function getText(url, timeoutMs = 10000) {
 /**
  * 基金行业配置：取**最新一期报告**的行业占比。
  * ⚠️ 接口一次返回多个报告期，不筛会算出重复且矛盾的行业占比
- *    （ 040001 返回 42 条，混了 2025 和 2024 两期）。
+ *    （有的基金返回 42 条，混了 2025 和 2024 两期）。
  * @returns {Promise<{allocation: Array<{industry, weight}>, reportDate: string}>}
  */
 export async function fetchIndustryAllocation(code) {
@@ -65,7 +65,7 @@ export async function fetchIndustryAllocation(code) {
     const quarters = JSON?.parse(raw)?.Data?.QuarterInfos ?? []
     if (quarters.length === 0) return { allocation: [], reportDate: '' }
 
-    // 取报告期最新的那一期（JZRQ 形如 ）
+    // 取报告期最新的那一期（JZRQ 形如 2026-06-30 这类报告期日期）
     const latest = quarters.reduce((a, b) => (String(a.JZRQ) >= String(b.JZRQ) ? a : b))
     const rows = latest?.HYPZInfo ?? []
     const merged = {}
@@ -109,7 +109,7 @@ export function detectStyleDrift(fundName, allocation) {
     }
   }
   if (!hint) {
-    return { claimed: null, verdict: 'unknown', actualPct: 0, drifted: false, note: '名称没有明确的行业指向，不做漂移判断' }
+    return { claimed: null, verdict: 'unknown', actualPct: 0, drifted: false, note: '名字里没有明确的行业指向' }
   }
   /* 用宣称行业的关键词去匹配实际行业名。
      ⚠️ 匹配不到时要**收手**：东财的行业分类很粗，白酒股归在「制造业」下、
@@ -122,7 +122,7 @@ export function detectStyleDrift(fundName, allocation) {
       verdict: 'unknown',
       actualPct: 0,
       drifted: false,
-      note: '持仓的行业分类与名称用词对不上（如白酒归制造业），漂移无法可靠判断',
+      note: '持仓的行业分类与名字用词对不上（如白酒归在制造业），对不上就不下结论',
     }
   }
   const actual = matched.reduce((s, a) => s + a.weight, 0)
@@ -161,14 +161,14 @@ export function buildFundNarrative({ fundName, exposure, drift }) {
   if (drift?.claimed) {
     if (drift.verdict === 'drifted') {
       paras.push(
-        `⚠️ 风格漂移：名称指向「${drift.claimed}」，但实际持仓中该方向只占 ${drift.actualPct}% —— 名不副实，不能按名字理解这只基金。`,
+        `⚠️ 名不副实：名字写着「${drift.claimed}」，实际持仓里这个方向只占 ${drift.actualPct}% —— 不能按名字理解这只基金。`,
       )
     } else if (drift.verdict === 'consistent') {
       paras.push(
-        `✅ 风格一致：名称指向「${drift.claimed}」，实际持仓中该方向占 ${drift.actualPct}%，名实相符。`,
+        `✅ 名副其实：名字写着「${drift.claimed}」，实际持仓里这个方向占 ${drift.actualPct}%。`,
       )
     } else {
-      paras.push(`ⓘ 风格漂移：${drift.note} —— 这一项不下结论。`)
+      paras.push(`ⓘ ${drift.note} —— 这一项不下结论。`)
     }
   }
   return paras

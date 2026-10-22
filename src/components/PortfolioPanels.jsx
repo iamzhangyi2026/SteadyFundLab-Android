@@ -148,7 +148,7 @@ export function RiskCard({ risk, overlap = [], twr = null }) {
             <div className="stat-v">{top ? `${top.pct?.toFixed(1)}%` : '—'}</div>
           </div>
           <div className="stat">
-            <div className="stat-k">集中度 HHI</div>
+            <div className="stat-k">集中度</div>
             <div className="stat-v">{risk.hhi == null ? '—' : risk.hhi.toFixed(3)}</div>
           </div>
         </div>
@@ -187,12 +187,12 @@ export function RiskCard({ risk, overlap = [], twr = null }) {
         {twr ? (
           twr.twr != null ? (
             <div className="pp-twr">
-              时间加权收益率（{twr.since || '导入'} 起，近似）
+              持有以来收益率（{twr.since || '导入'} 起，近似）
               <b className={cls(twr.twr)}>{signed(twr.twr)}%</b>
             </div>
           ) : (
             <div className="pp-twr">
-              时间加权收益率
+              持有以来收益率
               <b className="flat">暂不可算</b>
             </div>
           )
@@ -233,7 +233,7 @@ export function RiskCard({ risk, overlap = [], twr = null }) {
         ) : null}
 
         <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
-          HHI = 各基金占比平方和，越接近 1 越集中（等权 4 只为 0.25）。
+          集中程度 = 各基金占比平方和，越接近 1 越集中（等权 4 只为 0.25）。
           重叠按前十大重仓股的共同股票统计，重叠度 = Σ min(两只基金各自权重)。
         </p>
       </div>

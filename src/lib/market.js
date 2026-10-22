@@ -91,8 +91,7 @@ export async function fetchMarketQuotes() {
 
 /** 指数日 K 线：[{date, close}]，按日期升序；失败返回 [] */
 export async function fetchIndexKline(secid, limit = 120) {
-  /* 数据源：腾讯 ifzq（东财 push2his 在 CapacitorHttp 下返回空 data，
-      ；腾讯同一套行情源稳定可用）。
+  /* 数据源：腾讯 ifzq（东财 push2his 在 App 内走原生请求时返回空 data，腾讯这套稳定可用）。
      secid '1.000300' → sh000300；'0.399001' → sz399001。
      返回行格式 [date, open, close, high, low, volume]，close 取索引 2。 */
   const [mkt, code] = String(secid).split('.')

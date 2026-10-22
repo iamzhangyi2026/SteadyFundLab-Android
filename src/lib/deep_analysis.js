@@ -2,13 +2,13 @@
 // ------------------------------------------------------------
 // 六段结构：核心结论 / 硬指标 / 催化事件 / 估值与业绩 / 关注信号 / 投资建议。
 // 定性规则：
-//   位置 = 累计净值历史分位（≥80% 高估区｜40–80% 中位区｜<40% 低估区）
+//   位置 = 历史位置（≥80% 高估区｜40–80% 中位区｜<40% 低估区）
 //   趋势 = 近1年收益（≥+10% 向上｜0~+10% 偏平｜-10%~0 偏弱｜<-10% 向下）
 //   定性 = 位置 × 趋势矩阵（见 VERDICT_MATRIX）
 //
 // 口径约束：
-//   - 区间收益 / 分位 / 回撤用累计净值（历史表现口径）；当日涨跌用单位净值，两者不混用
-//   - 累计净值历史分位 = 当前值小于其值的样本数 ÷(样本数-1)，0%=历史最低，100%=历史最高
+//   - 区间收益 / 位置 / 下跌用累计净值（历史表现口径）；当日涨跌用单位净值，两者不混用
+//   - 历史位置 = 当前值小于其值的样本数 ÷(样本数-1)，0%=历史最低，100%=历史最高
 //   - 全部字段取真实数据；取不到的如实留空（null / 「暂无」），不编造
 //   - 禁止输出买卖指令：第六段只给关注点与风险点，定位为「非推荐，仅供判断参考」
 
@@ -23,7 +23,7 @@ const VERDICT_MATRIX = {
   overvalued: { up: '谨慎持有', flat: '谨慎', weak: '回避', down: '回避' },
 }
 
-/** 累计净值历史分位（%）：当前值在本地全部历史累计净值中的位置 */
+/** 历史位置（%）：当前值在本地全部历史累计净值中的位置 */
 export function navPercentile(series) {
   const vals = (series || []).map((p) => p.acc_nav).filter((v) => v != null && v > 0)
   if (vals.length < 2) return null
@@ -86,7 +86,7 @@ const TREND_BAND_LABEL = {
   unknown: '数据不足',
 }
 
-/** 回撤风险等级（|最大回撤| 分档） */
+/** 下跌风险等级（|最深跌| 分档） */
 function drawdownRiskLevel(mddPct) {
   if (mddPct == null || !Number.isFinite(mddPct)) return '数据不足，无法评级'
   const d = Math.abs(mddPct)
@@ -166,10 +166,12 @@ export function buildDeepAnalysis(input) {
   const summaryParts = [
     stats.ret_1y != null ? `近1年 ${fmtPct(stats.ret_1y)}` : '近1年收益数据不足',
     stats.ret_3m != null ? `近3月 ${fmtPct(stats.ret_3m)}` : '近3月数据不足',
-    drawdown ? `全历史最大回撤 ${fmtPct(drawdown.maxDrawdown)}` : '全历史最大回撤数据不足',
+    drawdown
+      ? `史上最深跌 ${Math.abs(drawdown.maxDrawdown).toFixed(2)}%`
+      : '史上最深跌数据不足',
     percentile != null
-      ? `累计净值处于历史 ${percentile.toFixed(1)}% 分位（${POSITION_BAND_LABEL[posBand]}）`
-      : '累计净值历史分位数据不足',
+      ? `累计净值处于历史 ${percentile.toFixed(1)}% 位置（${POSITION_BAND_LABEL[posBand]}）`
+      : '历史位置数据不足',
   ]
   const summary = `${summaryParts.join('，')}，当前位置与趋势合看定性为「${verdict}」。`
 
@@ -177,8 +179,8 @@ export function buildDeepAnalysis(input) {
   const metrics = [
     {
       label: '最新单位净值',
-      value: last ? last.nav.toFixed(4) : null,
-      note: `累计净值 ${last ? last.acc_nav.toFixed(4) : '—'}${last ? ` · ${last.date}` : ''}`,
+      value: last?.nav != null ? last.nav.toFixed(4) : null,
+      note: `累计净值 ${last?.acc_nav != null ? last.acc_nav.toFixed(4) : '数据缺失'}${last ? ` · ${last.date}` : ''}`,
       source: '公开行情',
     },
     {
@@ -200,13 +202,13 @@ export function buildDeepAnalysis(input) {
       source: '公开行情',
     },
     {
-      label: '最大回撤（全历史）',
+      label: '史上最深跌',
       value: drawdown ? fmtPct(drawdown.maxDrawdown) : null,
       note: '历史最高点到之后最低点的最深跌幅',
       source: '公开行情',
     },
     {
-      label: '年化波动率',
+      label: '一年波动幅度',
       value: stats.annualVol != null ? fmtPct(stats.annualVol) : null,
       note: '累计净值日收益率标准差 × √252',
       source: '公开行情',
@@ -218,7 +220,7 @@ export function buildDeepAnalysis(input) {
       source: '公开行情',
     },
     {
-      label: '累计净值历史分位',
+      label: '历史位置',
       value: percentile != null ? `${percentile.toFixed(1)}%` : null,
       note: percentile != null ? `当前值在历史中的位置：${POSITION_BAND_LABEL[posBand]}` : '净值样本不足',
       source: '公开行情',
@@ -227,20 +229,20 @@ export function buildDeepAnalysis(input) {
 
   // 关键事实（2–3 条）
   const facts = []
-  facts.push(`回撤风险等级：${drawdownRiskLevel(drawdown ? drawdown.maxDrawdown : null)}。`)
+  facts.push(`下跌风险等级：${drawdownRiskLevel(drawdown ? drawdown.maxDrawdown : null)}。`)
   if (drawdown && drawdown.peakDate && drawdown.troughDate) {
     facts.push(
       drawdown.recovered
-        ? `最深回撤自 ${drawdown.peakDate} 高点跌至 ${drawdown.troughDate} 低点，之后用 ${drawdown.recoveryDays} 天涨回原位。`
-        : `最深回撤自 ${drawdown.peakDate} 高点跌至 ${drawdown.troughDate} 低点，截至最新净值日仍未涨回原位（已过 ${drawdown.pendingDays} 天）。`,
+        ? `最深的一轮跌，从 ${drawdown.peakDate} 高点跌至 ${drawdown.troughDate} 低点，之后用 ${drawdown.recoveryDays} 天涨回原位。`
+        : `最深的一轮跌，从 ${drawdown.peakDate} 高点跌至 ${drawdown.troughDate} 低点，截至最新净值日仍未涨回原位（已过 ${drawdown.pendingDays} 天）。`,
     )
   } else {
-    facts.push('本地净值样本不足，暂无回撤起止日期与修复情况。')
+    facts.push('本地净值样本不足，暂无下跌起止日期与修复情况。')
   }
   facts.push(
     percentile != null
-      ? `当前净值处于${POSITION_BAND_LABEL[posBand]}（${percentile.toFixed(1)}% 分位），分位 ≥80% 为高估区、40–80% 为中位区、<40% 为低估区。`
-      : '净值样本不足，历史分位无法计算。',
+      ? `当前净值处于${POSITION_BAND_LABEL[posBand]}（${percentile.toFixed(1)}% 位置）：80% 以上是高位，40%–80% 是中间，40% 以下是低位。`
+      : '净值样本不足，历史位置无法计算。',
   )
 
   // ── 三、催化事件（调用方已合并公告 + 重仓股新闻，此处只做倒序与截断） ──
@@ -256,7 +258,7 @@ export function buildDeepAnalysis(input) {
   const valuation = [
     {
       target: '本基金',
-      metric: '历史分位 / 近1年',
+      metric: '历史位置 / 近1年',
       value:
         percentile != null
           ? `${percentile.toFixed(1)}%（${POSITION_BAND_LABEL[posBand]}）/ ${fmtPct(stats.ret_1y) ?? '—'}`
@@ -299,7 +301,7 @@ export function buildDeepAnalysis(input) {
 
   const valuationNote =
     posBand === 'overvalued'
-      ? '净值处历史高位区，需警惕均值回归。'
+      ? '净值处历史高位区，需警惕跌回平均水平。'
       : posBand === 'undervalued'
         ? '净值处历史低位区，是否见底需结合趋势与催化事件合看。'
         : '净值处历史中位区，位置本身不构成偏向，重点看趋势与催化事件。'
@@ -308,14 +310,14 @@ export function buildDeepAnalysis(input) {
   const signals = [
     {
       priority: '★★★★★',
-      name: '累计净值历史分位',
+      name: '历史位置',
       standard: '突破 90% → 位置偏高；跌回 40% 以下 → 回到偏低区',
       status: percentile != null ? `${percentile.toFixed(1)}%` : '数据不足',
     },
     {
       priority: '★★★★☆',
-      name: '最大回撤是否加深',
-      standard: '出现更深回撤 → 风险等级上调',
+      name: '最深跌是否加深',
+      standard: '出现更深跌幅 → 风险等级上调',
       status: drawdown ? `${fmtPct(drawdown.maxDrawdown)}` : '数据不足',
     },
     {
@@ -335,17 +337,19 @@ export function buildDeepAnalysis(input) {
     weightPct != null
       ? `仓位定位：该基金占你真实持仓总市值 ${weightPct.toFixed(1)}%，先明确它在你组合里扮演的角色，再决定要不要调整。`
       : '仓位定位：本地暂无完整的真实持仓市值数据，无法计算占比，可先在持仓页补全省份额与成本。',
-    `分位与方向合看：当前 ${percentile != null ? `${percentile.toFixed(1)}%` : '未知'} 分位 × 近1年 ${fmtPct(stats.ret_1y) ?? '未知'}，定性「${verdict}」；位置便宜但趋势向下时不急于动作，位置偏高且趋势转弱时提高警惕。`,
+    `位置与方向合看：历史位置 ${percentile != null ? `${percentile.toFixed(1)}%` : '未知'} × 近1年 ${fmtPct(stats.ret_1y) ?? '未知'}，定性「${verdict}」；位置便宜但趋势向下时不急于动作，位置偏高且趋势转弱时提高警惕。`,
     '同类对比：在「自选」页可对比该基金与其它自选基金的区间表现，同类排名数据本地未接入，以指数与自选对比为准。',
   ]
   const risks = []
   risks.push(
     drawdown
-      ? `回撤风险：全历史最深跌 ${Math.abs(drawdown.maxDrawdown).toFixed(2)}%，买入前先确认这个跌幅扛不扛得住。`
-      : '回撤风险：本地净值样本不足，回撤风险暂无法量化。',
+      ? `下跌风险：史上最深跌 ${Math.abs(drawdown.maxDrawdown).toFixed(2)}%，买入前先确认这个跌幅扛不扛得住。`
+      : '下跌风险：本地净值样本不足，下跌风险暂无法量化。',
   )
   if (posBand === 'overvalued') {
-    risks.push(`位置风险：净值处于历史 ${percentile.toFixed(1)}% 分位的高位区，均值回归可能随时发生。`)
+    risks.push(
+      `位置风险：净值处在历史 ${percentile.toFixed(1)}% 的高位区，随时可能跌回平均水平。`,
+    )
   }
   if (position && position.profit != null && position.profit < 0) {
     risks.push(
@@ -354,8 +358,8 @@ export function buildDeepAnalysis(input) {
   }
   risks.push(
     percentile != null && (stats.samples || 0) < 250
-      ? '数据边界：本地净值历史不足 250 个交易日，分位与统计值的置信度有限，建议抓满历史后再看。'
-      : '数据边界：分位与统计基于本地已抓取净值，若历史未抓全会影响准确性；结论仅供判断参考，不构成买卖建议。',
+      ? '数据边界：本地净值历史不足 250 个交易日，位置与统计值的置信度有限，建议抓满历史后再看。'
+      : '数据边界：位置与统计基于本地已抓取净值，若历史未抓全会影响准确性；结论仅供判断参考，不构成买卖建议。',
   )
 
   return {
@@ -365,7 +369,7 @@ export function buildDeepAnalysis(input) {
     trendBand,
     trendLabel: TREND_BAND_LABEL[trendBand],
     verdict,
-    verdictReason: `位置：${POSITION_BAND_LABEL[posBand]}（累计净值历史分位 ${percentile != null ? percentile.toFixed(1) + '%' : '未知'}）；趋势：${TREND_BAND_LABEL[trendBand]}（近1年 ${fmtPct(stats.ret_1y) ?? '未知'}）`,
+    verdictReason: `位置：${POSITION_BAND_LABEL[posBand]}（历史位置 ${percentile != null ? percentile.toFixed(1) + '%' : '未知'}）；趋势：${TREND_BAND_LABEL[trendBand]}（近1年 ${fmtPct(stats.ret_1y) ?? '未知'}）`,
     summary,
     percentile,
     metrics,

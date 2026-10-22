@@ -1,7 +1,7 @@
 {
-  "name": "fund-app-prototype",
+  "name": "fundapp",
   "private": true,
-  "version": "2.4",
+  "version": "2.5",
   "type": "module",
   "description": "基金沙盒 · 纯客户端移动端原型（Capacitor + React）",
   "scripts": {

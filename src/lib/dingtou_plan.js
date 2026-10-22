@@ -1,6 +1,6 @@
 // src/lib/dingtou_plan.js · 定投计划（完整版）
 // ------------------------------------------------------------
-// 与 fund-app 的定投定义对齐：
+// 字段与能力定义：
 //   字段：基金代码 / 名称 / 每期金额 / 频率（每周、每两周、每月）/
 //         周几 或 每月几号 / 开始日期 / 启用状态
 //   能力：新增、编辑、暂停/恢复、删除、下次扣款日、已投期数、累计投入
@@ -12,6 +12,7 @@
 import { sendFundAlert } from './notify.js'
 import { fetchHoldingsLive } from './live.js'
 import { appendRealHolding, loadRealHoldings } from './realLedger.js'
+import { isTradingDay } from './trade_days.js'
 
 const KEY = 'dingtou_plans'
 const NOTIFIED_KEY = 'dingtou_notified'
@@ -198,6 +199,10 @@ export function planStats(plan, now = new Date()) {
     advance(cursor, plan.frequency)
     guard++
   }
+
+  /* 扣款日落在非交易日就顺延到下一个交易日（周末顺延；节假日没有日历数据，
+     按工作日近似，假日多顺延一次无害） */
+  while (!isTradingDay(cursor)) cursor.setDate(cursor.getDate() + 1)
 
   return {
     periods,

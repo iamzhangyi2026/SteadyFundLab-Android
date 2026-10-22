@@ -1,7 +1,7 @@
 // src/lib/navCache.js · 净值历史本地缓存（实时抓 + 增量存）
 // ------------------------------------------------------------
 // 定位：仍然是「实时抓」，但抓过的历史数据落到 localStorage，
-// 分析（分位 / 回撤 / 回测 / 基准 / TWR / 筛选）优先读缓存，缺的才请求。
+// 分析（位置 / 下跌 / 回测 / 基准 / TWR / 筛选）优先读缓存，缺的才请求。
 // 不引入 SQLite，也不做离线优先——只是把「已抓到的历史」存住、别重复抓。
 //
 // 容量控制（localStorage 约 5MB）：
@@ -48,6 +48,35 @@ export function loadNavCache(code) {
 }
 
 /**
+ * 把本地缓存的序列换成 fetchFund 的返回结构，供首屏直接渲染
+ * @returns {{code:string,name:string,netWorth:Array,accWorth:Array,rate:null,sourceRate:null}|null}
+ */
+export function cachedToWorth(code) {
+  const obj = loadNavCache(code)
+  if (!obj) return null
+  const netWorth = []
+  const accWorth = []
+  for (const p of obj.series) {
+    const x = Date.parse(`${p.date}T00:00:00`)
+    if (!Number.isFinite(x) || !Number.isFinite(Number(p.nav))) continue
+    netWorth.push({ x, y: Number(p.nav) })
+    if (Number.isFinite(Number(p.acc_nav))) accWorth.push({ x, y: Number(p.acc_nav) })
+  }
+  if (netWorth.length === 0) return null
+  return {
+    code,
+    name: code,
+    netWorth,
+    accWorth,
+    rate: null,
+    sourceRate: null,
+    minBuy: null,
+    stockCodes: [],
+    fromCache: true,
+  }
+}
+
+/**
  * 写缓存（截断到 MAX_POINTS，并登记索引供 FIFO 淘汰）
  *
  * 顺序：**先尝试写**，写失败（配额满）才淘汰最旧的那批再重试一次。
@@ -60,7 +89,7 @@ export function saveNavCache(code, series, { source = 'net' } = {}) {
 
   // 种子快照记 at:0 —— 它只是发版当天的快照，不能当成「刚刚抓过」。
   // 否则预抓取会因「24h 内抓过」把种子覆盖的基金全部跳过（首日队列为空、
-  // 功能形同虚设），分位/回撤/算法推荐也会一直沿用发版当天的旧数据。
+  // 功能形同虚设），位置/下跌/算法推荐也会一直沿用发版当天的旧数据。
   const at = source === 'seed' ? 0 : Date.now()
   const trimmed = series.slice(-MAX_POINTS)
   const payload = JSON.stringify({

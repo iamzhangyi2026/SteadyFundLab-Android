@@ -1,7 +1,7 @@
 // src/lib/watchlist.js · 自选列表（人工可增删 + 算法动态生成）
 // ------------------------------------------------------------
 // 两类来源，分开标注：
-//   - algo   算法动态生成：跑全市场三轨筛选（近1年>0、分位<50%、回撤<50%，
+//   - algo   算法动态生成：跑全市场三轨筛选（近1年>0、位置<50%、下跌<50%，
 //            即项目 screen_rules 定义的「标准」），把达标的、综合分靠前的基金
 //            列出来。数量不固定——达标几个列几个，最多 ALGO_OPTS.limit 只。
 //            每次点「更新」重算，离线时保留上次结果。
@@ -53,7 +53,7 @@ export function loadWatch() {
 
 /**
  * 算法自选：跑全市场三轨筛选，返回达标且综合分靠前的基金。
- * 标准（对齐项目 screen_rules）：近1年>0、历史分位<50%、最大回撤<50%。
+ * 标准（对齐项目 screen_rules）：近1年>0、历史位置<50%、最深跌<50%。
  * 数量不固定——达标几个列几个，最多 limit 只。
  * @returns {Promise<Array<{code,name,tag,source,score,reasons,created_at}>>}
  */
@@ -82,7 +82,7 @@ export async function computeAlgoCandidates(opts = {}) {
       const reasons = []
       if (r.percentile != null && r.percentile < 50) reasons.push('洼地')
       if (r.y1 != null && r.y1 > 0) reasons.push('近1年正')
-      if (r.maxDrawdown != null && Math.abs(r.maxDrawdown) < 50) reasons.push('回撤可控')
+      if (r.maxDrawdown != null && Math.abs(r.maxDrawdown) < 50) reasons.push('下跌可控')
       return { r, score, reasons }
     })
     .filter((x) => x.score != null)

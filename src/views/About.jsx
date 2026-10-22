@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import { App } from '@capacitor/app'
 import { isNative } from '../lib/platform.js'
 
-const APP_VERSION = '2.17'
+const APP_VERSION = '2.5'
 
 export default function About({ onBack }) {
   const [info, setInfo] = useState({ version: APP_VERSION, build: 0 })

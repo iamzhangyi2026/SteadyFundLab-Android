@@ -1,7 +1,7 @@
-// src/lib/prefetch.js · 后台分层预抓取（M1）
+// src/lib/prefetch.js · 后台分层预抓取
 // ------------------------------------------------------------
-// 规划原文（整体规划 M1）：「恢复全量净值抓取：启动读本地 + 后台分层抓 +
-// WiFi+充电全量」。这里按 prototype 的实时抓架构落地：
+// 设计目标：「恢复全量净值抓取：启动读本地 + 后台分层抓 +
+// WiFi+充电全量」。按本工程的实时抓架构落地：
 //
 //   分层（优先级从高到低）：
 //     L1 真实持仓 + 模拟持仓 —— 用户的钱，必须最先有完整历史
@@ -25,14 +25,15 @@ import { loadRealHoldings } from './realLedger.js'
 import { loadSimHoldings } from './simLedger.js'
 import { fetchFundCached, loadNavCache } from './navCache.js'
 import { fetchFundRank } from './screener.js'
+import { loadWatch } from './watchlist.js'
 
 const PREFS_KEY = 'prefetch_prefs'
 const LAST_KEY = 'prefetch_last'
 const MIN_GAP = 6 * 60 * 60 * 1000 // 两次自动预抓取最小间隔
 const STEP_DELAY = 600
 
-/* 与 Watch / Discover 保持一致的静态池（页面里是硬编码，这里同源维护） */
-const WATCH_POOL = ['040001', '110010', '000021', '100038']
+/* 与 Discover 页同源的候选池（发现页也是这份硬编码，两处保持一致）。
+   自选池不写在这里 —— 它会随用户增删和算法结果变，抓取时实时读。 */
 const DISCOVER_POOL = ['040001', '110010', '000021', '100038', '001594', '519674']
 
 const DEFAULT_PREFS = {
@@ -145,7 +146,7 @@ export function layer1Codes() {
 
 /** L2：自选池 + 发现页候选池 */
 export function layer2Codes() {
-  return uniq([...WATCH_POOL, ...DISCOVER_POOL])
+  return uniq([...loadWatch().map((w) => w.code), ...DISCOVER_POOL])
 }
 
 /** L3：全市场排行前 N（按近一年涨幅，真实排行接口） */

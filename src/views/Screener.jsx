@@ -1,10 +1,10 @@
 // src/views/Screener.jsx · 全市场基金筛选（完整版）
 // ------------------------------------------------------------
 // 排行来自天天基金全市场（约 1.8 万只），先按近1年/近6月/近3月/今年来排序；
-// 再对当前页前 12 只补算「历史分位 / 最大回撤 / 年化波动」，按三轨条件过滤。
+// 再对当前页前 12 只补算「历史位置 / 最深跌 / 一年波动幅度」，按三轨条件过滤。
 //
-// 筛选口径对齐项目 screen_rules：近1年 > 0、分位 < 50%、回撤 < 50%。
-// 没算分位的行不参与「只看达标」，也不假装达标。
+// 筛选口径对齐项目 screen_rules：近1年 > 0、位置 < 50%、下跌 < 50%。
+// 没算位置的行不参与「只看达标」，也不假装达标。
 
 import { useEffect, useState } from 'react'
 import { fetchFundRank, enrichHistory, screenRows, scoreOf, SORT_OPTIONS } from '../lib/screener.js'
@@ -74,7 +74,7 @@ export default function Screener({ onOpen }) {
         </div>
         <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
           全市场共 {state.total ? state.total.toLocaleString('zh-CN') : '—'} 只基金，按所选区间涨幅排序。
-          排行本身不含历史分位与回撤，需要点「计算分位/回撤」对当前页前 12 只补算（每只一次请求，约 10 秒）。
+          排行本身不含历史位置与下跌，需要点「计算位置/下跌」对当前页前 12 只补算（每只一次请求，约 10 秒）。
         </p>
       </div>
 
@@ -113,15 +113,15 @@ export default function Screener({ onOpen }) {
                 <div className="fund-meta">
                   费率 {r.rate == null ? '—' : `${r.rate}%`}
                   {r.scale != null ? ` · 规模 ${r.scale} 亿` : ''}
-                  {r.percentile != null ? ` · 分位 ${r.percentile.toFixed(1)}%` : ''}
-                  {r.maxDrawdown != null ? ` · 回撤 ${r.maxDrawdown.toFixed(1)}%` : ''}
+                  {r.percentile != null ? ` · 位置 ${r.percentile.toFixed(1)}%` : ''}
+                  {r.maxDrawdown != null ? ` · 下跌 ${Math.abs(r.maxDrawdown).toFixed(1)}%` : ''}
                   {r.vol != null ? ` · 波动 ${r.vol.toFixed(1)}%` : ''}
                 </div>
                 {r.percentile != null ? (
                   <div className="chip-row" style={{ marginTop: 6 }}>
-                    {r.percentile < 50 ? <span className="chip teal">分位 &lt; 50%</span> : null}
+                    {r.percentile < 50 ? <span className="chip teal">位置 &lt; 50%</span> : null}
                     {r.y1 != null && r.y1 > 0 ? <span className="chip info">近1年为正</span> : null}
-                    {Math.abs(r.maxDrawdown ?? 999) < 50 ? <span className="chip warn">回撤 &lt; 50%</span> : null}
+                    {Math.abs(r.maxDrawdown ?? 999) < 50 ? <span className="chip warn">下跌 &lt; 50%</span> : null}
                     {scoreOf(r) != null ? <span className="chip">综合 {scoreOf(r)}</span> : null}
                   </div>
                 ) : null}
@@ -137,7 +137,7 @@ export default function Screener({ onOpen }) {
         onClick={compute}
         disabled={busy || state.loading || state.rows.length === 0}
       >
-        {busy ? '正在计算分位/回撤…' : '计算分位 / 回撤（前 12 只）'}
+        {busy ? '正在计算位置/下跌…' : '计算位置 / 下跌（前 12 只）'}
       </button>
 
       {enriched ? (
@@ -151,7 +151,7 @@ export default function Screener({ onOpen }) {
       ) : null}
 
       <p className="card-note" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
-        达标口径：近1年 &gt; 0、历史分位 &lt; 50%、最大回撤 &lt; 50%。仅作统计筛选，不构成买入建议。
+        达标口径：近1年 &gt; 0、历史位置 &lt; 50%、最深跌 &lt; 50%。仅作统计筛选，不构成买入建议。
       </p>
     </>
   )

@@ -5,12 +5,12 @@
 //         近3月 / 近6月 / 近1年 / 近2年 / 近3年 / 今年来 / 成立来 /
 //         成立日期 / 原始费率 / 折后费率 / 规模（亿）。
 //
-// 排行本身没有「历史分位 / 最大回撤 / 年化波动」——这三项需要逐只抓
+// 排行本身没有「历史位置 / 最深跌 / 一年波动幅度」——这三项需要逐只抓
 // pingzhongdata 历史净值。所以分两步：
 //   ① fetchFundRank   拉排行（快，1 个请求）
-//   ② enrichHistory   对当前页前 N 只补分位/回撤/波动（慢，每只 1 个请求）
+//   ② enrichHistory   对当前页前 N 只补位置/下跌/波动（慢，每只 1 个请求）
 //
-// 筛选口径对齐项目 screen_rules：近1年 > 0、分位 < 50%、最大回撤 < 50%。
+// 筛选口径对齐项目 screen_rules：近1年 > 0、位置 < 50%、最深跌 < 50%。
 // 拿不到的字段保持 null，不参与筛选、不填 0。
 
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
@@ -113,12 +113,11 @@ export async function fetchFundRank({ page = 1, size = 20, sort = '1nzf', order 
 }
 
 /**
- * 给排行行补历史指标（分位 / 最大回撤 / 年化波动）
+ * 给排行行补历史指标（位置 / 最深跌 / 一年波动幅度）
  * 每只一次 pingzhongdata 请求（走缓存）；失败的那只保持 null，不猜。
  *
- * 数据源异常跳变防护（v21 口径）：净值序列含单日 ≥50% 跳变时，
- * 分位/回撤/波动全部失真（001594 ），该行标 `suspect: true`，
- * `screenRows` 会把它排除，不用失真指标参与筛选。
+ * 数据源异常跳变防护：净值序列含单日 ≥50% 跳变时，位置/下跌/波动全部失真，
+ * 该行标 `suspect: true`，`screenRows` 会把它排除，不用失真指标参与筛选。
  */
 export async function enrichHistory(rows) {
   return Promise.all(
@@ -165,7 +164,7 @@ export function screenRows(
   })
 }
 
-/** 综合分：分位越低越好、近1年越高越好、回撤越小越好（0–100） */
+/** 综合分：位置越低越好、近1年越高越好、下跌越小越好（0–100） */
 export function scoreOf(r) {
   if (r.percentile == null || r.y1 == null || r.maxDrawdown == null) return null
   const p = 100 - Math.min(100, Math.max(0, r.percentile))

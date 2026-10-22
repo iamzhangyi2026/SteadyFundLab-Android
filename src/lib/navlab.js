@@ -1,7 +1,7 @@
 // src/lib/navlab.js · 净值实验室
 // ------------------------------------------------------------
 // 基于真实历史净值序列，纯前端算两件事：
-//   ① 回撤修复 —— 直面负面数据，回答「最深跌多少、跌了多久、多久才涨回来」
+//   ① 下跌修复 —— 直面负面数据，回答「最深跌多少、跌了多久、多久才涨回来」
 //   ② 定投回测 —— 模拟定期定额买入，并与同期「一把梭」对比
 // 纯计算、零请求；数据来自 fetchFund 的真实净值序列。
 //
@@ -26,7 +26,7 @@ function dayDiff(a, b) {
   return Math.round((t2 - t1) / DAY)
 }
 
-/** 累计净值历史 → 回撤修复分析 */
+/** 累计净值历史 → 下跌修复分析 */
 export function drawdownRecovery(series) {
   const pts = points(series)
   if (pts.length < 2) return null
@@ -87,7 +87,7 @@ export function drawdownRecovery(series) {
   }
 }
 
-/** 年化波动率（%）—— 用累计净值日收益率的标准差 × √252。数据不足 30 个点返回 null */
+/** 一年波动幅度（%）—— 用累计净值日收益率的标准差 × √252。数据不足 30 个点返回 null */
 export function annualVol(series) {
   const pts = points(series)
   if (pts.length < 30) return null

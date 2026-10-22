@@ -41,8 +41,7 @@ export function countSimHolding(code) {
 }
 
 /**
- * 删除一条买入记录（按 id）。
- * 人控要求：用户必须能删自己的模拟记录，不能只进不出。
+ * 删除一条买入记录（按 id）：模拟记录能进也能删。
  * @param {string} id addSimHolding 时写入的 id
  * @returns {boolean} 删掉了返回 true；没这条记录返回 false
  */

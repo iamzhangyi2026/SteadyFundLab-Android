@@ -1,7 +1,7 @@
 /**
  * 本地通知
  * ------------------------------------------------------------
- * 用途：App 没打开时主动提醒（例如基金涨跌到阈值、关注的分位进入低估区）。
+ * 用途：App 没打开时主动提醒（例如基金涨跌到阈值、关注的位置进入低估区）。
  *
  * ⚠️ 两条原则：
  *
@@ -118,7 +118,7 @@ export async function sendTestNotification() {
 /* ------------------------------------------------------------------
    红点（App 内指示器）—— 通用机制
    ------------------------------------------------------------------
-   ：「红点不一定只是更新才有哦，其它通知，同样的规则。」
+   红点不只跟着版本更新走，各类通知共用同一套规则。
 
    生命周期（对所有类型一视同仁）：
      新通知产生 → 对应页签亮红点
@@ -239,14 +239,10 @@ export async function onNotificationClick(handler) {
   if (!isNative()) return noop
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    /* ⚠️ 事件名必须是 'localNotificationActionPerformed'。
-       曾经写成 'actionPerformed' —— 那个名字插件根本不认，
-       监听器永远不会被调用，表现为「点通知毫无反应、红点也不灭」。
-       （ 发现，翻插件定义确认：
-         node_modules/@capacitor/local-notifications/dist/esm/definitions.d.ts）
-
-       插件端 notifyListeners(..., retainUntilConsumed = true)，
-       所以 App 没运行时点通知、事件发生在 JS 加载之前，也会保留下来补发。 */
+    /* 事件名必须是 'localNotificationActionPerformed'：写成 'actionPerformed'
+       插件不认，监听器永远不会被调用。
+       插件端 retainUntilConsumed = true，所以 App 没运行时点通知、
+       事件发生在 JS 加载之前，也会保留下来补发。 */
     const handle = await LocalNotifications.addListener('localNotificationActionPerformed', (ev) => {
       const n = ev?.notification
       if (!n) return

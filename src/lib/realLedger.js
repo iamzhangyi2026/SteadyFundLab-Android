@@ -38,7 +38,7 @@ export function calcHolding(r) {
   /* 脏数据防线：pct 可能是导入的字符串/空值，也可能极端到 -100（除零）。
      所有中间值先过有限数校验，宁可返回 null（界面显示「—」），也不渲染 NaN。
      ⚠️ Number(null) === 0、Number('') === 0——必须先挡掉空值，
-        否则 shares=null 会被当成 0 份，市值算成 0、收益 -100%（ 回归抓到的 bug）。 */
+        否则 shares=null 会被当成 0 份，市值算成 0、收益 -100%。 */
   const num = (v) => {
     if (v == null || v === '') return null
     const n = Number(v)

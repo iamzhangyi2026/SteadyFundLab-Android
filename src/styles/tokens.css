@@ -89,12 +89,9 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ---------- 移动端特有 ----------
-     ⚠️   bug： 20 Pro（Android 16，targetSdk 36）上
-     env(safe-area-inset-bottom) 在 Capacitor WebView 里返回 0，
-     悬浮 Tab 栏贴到屏幕最底，正好落在系统 NavigationBar 手势区里 ——
-     点 Tab 会被系统当成返回/主页手势，App 直接退出。
-     修复：env 生效时用 env，失效时兜底 72px（手势条高度），
-     保证 Tab 栏永远在系统手势区上方。 */
+     部分机型上 env(safe-area-inset-bottom) 在 WebView 里返回 0，
+     悬浮 Tab 栏会贴到屏幕最底、落进系统手势区，点 Tab 会被当成返回手势。
+     所以 env 生效时用 env，失效时兜底 72px（手势条实际高度）。 */
   --safe-top: max(env(safe-area-inset-top), 24px);
   --safe-bottom: max(env(safe-area-inset-bottom), 72px);
   --tabbar-h: 62px;

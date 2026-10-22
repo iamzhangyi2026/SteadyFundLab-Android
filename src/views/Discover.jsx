@@ -1,8 +1,8 @@
 /**
  * 发现页 —— 估值洼地筛选
  * ------------------------------------------------------------
- * 对一篮子候选基金算两个指标，再按「分位从低到高」排序：
- *   分位 —— 当前净值在自身历史中的位置（越低越接近历史低位）
+ * 对一篮子候选基金算两个指标，再按「位置从低到高」排序：
+ *   位置 —— 当前净值在自身历史中的位置（越低越接近历史低位）
  *   趋势 —— 近 60 个交易日的涨跌（用来看方向）
  * 两者同时命中会额外打一个「双条件命中」标签。
  *
@@ -27,10 +27,10 @@ function seedItems() {
   }).filter(Boolean)
 }
 
-/* 分位与趋势都用**累计净值**：单位净值会因分红跳空，
-   一次分红就被误读成一次下跌，分位和趋势随之失真 */
+/* 位置与趋势都用**累计净值**：单位净值会因分红跳空，
+   一次分红就被误读成一次下跌，位置和趋势随之失真 */
 
-/** 当前累计净值在自身历史中的分位（%）—— 越低越"洼地" */
+/** 当前累计净值在自身历史中的位置（%）—— 越低越"洼地" */
 function percentile(series) {
   if (!series || series.length < 30) return null
   const vals = series.map((d) => Number(d.y)).filter(Number.isFinite)
@@ -114,7 +114,7 @@ export default function Discover({ onOpen, onNavigate }) {
         <button className="quick-card" onClick={() => onNavigate?.('compare')}>
           <span className="quick-icon">⇄</span>
           <span className="quick-title">多基金对比</span>
-          <span className="quick-caption">并排看区间与回撤</span>
+          <span className="quick-caption">并排看区间与下跌</span>
           <span className="quick-arrow">↗</span>
         </button>
         <button className="quick-card" onClick={() => onNavigate?.('market')}>
@@ -134,17 +134,17 @@ export default function Discover({ onOpen, onNavigate }) {
       <div className="section-title">标签图例</div>
       <div className="card">
         <div className="chip-row">
-          <span className="chip teal">洼地 · 分位 &lt; 50%</span>
+          <span className="chip teal">洼地 · 位置 &lt; 50%</span>
           <span className="chip info">趋势向上 · 60 日 &gt; 0</span>
           <span className="chip warn">双条件命中</span>
         </div>
         <p className="card-note" style={{ marginTop: 'var(--space-3)' }}>
-          下面是候选池，按历史分位从低到高排；达标的会打上对应标签，未打标即未满足。
-          分位 = 当前净值在自身历史中的位置，越低越接近历史低位。仅作统计展示，不构成买入建议。
+          下面是候选池，按历史位置从低到高排；达标的会打上对应标签，未打标即未满足。
+          位置 = 当前净值在自身历史中的位置，越低越接近历史低位。仅作统计展示，不构成买入建议。
         </p>
       </div>
 
-      <div className="section-title">候选池 · 按分位排序</div>
+      <div className="section-title">候选池 · 按位置排序</div>
 
       {state.fromSeed ? (
         <p className="card-note" style={{ margin: '0 0 8px' }}>
@@ -167,7 +167,7 @@ export default function Discover({ onOpen, onNavigate }) {
       )}
 
       <p className="card-note" style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
-        共 {CANDIDATES.length} 只候选 · 按分位从低到高排序，达标项已打标
+        共 {CANDIDATES.length} 只候选 · 按位置从低到高排序，达标项已打标
       </p>
     </>
   )
@@ -181,13 +181,13 @@ function CandidateRow({ r, onClick }) {
       <div className="fund-main">
         <div className="fund-name">{r.d.name}</div>
         <div className="fund-meta">
-          分位 <span className="num">{r.pct == null ? '—' : `${r.pct.toFixed(1)}%`}</span>
+          位置 <span className="num">{r.pct == null ? '—' : `${r.pct.toFixed(1)}%`}</span>
           {' · '}
           <span className={upTrend ? 'down' : 'up'}>
             60日 {r.tr == null ? '—' : `${r.tr > 0 ? '+' : ''}${r.tr.toFixed(1)}%`}
           </span>
           {' · '}
-          <span className="down">回撤 {r.dd == null ? '—' : `${r.dd.toFixed(1)}%`}</span>
+          <span className="down">下跌 {r.dd == null ? '—' : `${Math.abs(r.dd).toFixed(1)}%`}</span>
         </div>
         <div className="chip-row" style={{ marginTop: 6 }}>
           {low && <span className="chip teal">洼地</span>}
